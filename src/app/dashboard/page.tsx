@@ -255,7 +255,10 @@ export default function DashboardPage() {
                 <p className="text-gray-600">Cardápio e gerenciamento</p>
               </button>
 
-              <button className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105">
+              <button
+                onClick={() => router.push('/orders')}
+                className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105"
+              >
                 <div className="text-6xl mb-4">📋</div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Pedidos</h3>
                 <p className="text-gray-600">Visualizar todos os pedidos</p>
