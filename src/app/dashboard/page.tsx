@@ -266,7 +266,10 @@ export default function DashboardPage() {
 
               {user.role === 'RECEPTIONIST' && (
                 <>
-                  <button className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105">
+                  <button
+                    onClick={() => router.push('/printers')}
+                    className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105"
+                  >
                     <div className="text-6xl mb-4">🖨️</div>
                     <h3 className="text-xl font-bold text-gray-900 mb-2">Impressoras</h3>
                     <p className="text-gray-600">Configurar impressoras</p>
