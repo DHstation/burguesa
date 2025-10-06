@@ -1,0 +1,200 @@
+// Schema do Prisma para Sistema Burguesa
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Tipos de usuários
+enum UserRole {
+  RECEPTIONIST  // Recepcionista (acesso completo)
+  WAITER        // Garçom (acesso limitado)
+}
+
+// Estados da mesa
+enum TableStatus {
+  EMPTY       // Vazio
+  ATTENDING   // Atendendo
+  FINISHED    // Finalizado
+}
+
+// Categorias de produtos
+enum ProductCategory {
+  DRINKS      // Bebidas
+  SNACKS      // Lanches
+  DESSERTS    // Sobremesas
+  MEALS       // Refeições
+  APPETIZERS  // Entradas
+  OTHER       // Outros
+}
+
+// Status do pedido
+enum OrderStatus {
+  PENDING     // Pendente
+  PREPARING   // Preparando
+  READY       // Pronto
+  DELIVERED   // Entregue
+  CANCELLED   // Cancelado
+}
+
+// Modelo de Usuário
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  tables    Table[]
+  orders    Order[]
+  sessions  TableSession[]
+  logs      ActivityLog[]
+
+  @@map("users")
+}
+
+// Modelo de Mesa
+model Table {
+  id              String      @id @default(cuid())
+  number          Int         @unique
+  status          TableStatus @default(EMPTY)
+  currentTotal    Float       @default(0)
+  startTime       DateTime?
+  endTime         DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Mesa unida (referência circular)
+  mergedWithId    String?
+  mergedWith      Table?      @relation("MergedTables", fields: [mergedWithId], references: [id], onDelete: SetNull)
+  mergedTables    Table[]     @relation("MergedTables")
+
+  // Relacionamentos
+  waiterId        String?
+  waiter          User?       @relation(fields: [waiterId], references: [id], onDelete: SetNull)
+  orders          Order[]
+  sessions        TableSession[]
+
+  @@map("tables")
+}
+
+// Histórico de sessões das mesas
+model TableSession {
+  id          String    @id @default(cuid())
+  tableId     String
+  table       Table     @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  waiterId    String
+  waiter      User      @relation(fields: [waiterId], references: [id], onDelete: Cascade)
+  startTime   DateTime  @default(now())
+  endTime     DateTime?
+  totalAmount Float     @default(0)
+
+  @@map("table_sessions")
+}
+
+// Modelo de Produto
+model Product {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  category    ProductCategory
+  imageUrl    String?
+  active      Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  // Relacionamentos
+  orderItems  OrderItem[]
+
+  @@map("products")
+}
+
+// Modelo de Pedido
+model Order {
+  id          String      @id @default(cuid())
+  tableId     String
+  table       Table       @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  waiterId    String
+  waiter      User        @relation(fields: [waiterId], references: [id], onDelete: Cascade)
+  status      OrderStatus @default(PENDING)
+  total       Float       @default(0)
+  serviceCharge Float     @default(0)
+  finalTotal  Float       @default(0)
+  printed     Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relacionamentos
+  items       OrderItem[]
+
+  @@map("orders")
+}
+
+// Itens do pedido
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity    Int
+  price       Float    // Preço no momento do pedido
+  observations String?
+  cancelled   Boolean  @default(false)
+  cancelReason String?
+  createdAt   DateTime @default(now())
+
+  @@map("order_items")
+}
+
+// Configurações de impressora
+model PrinterConfig {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  type          String   // 'kitchen' ou 'reception'
+  vendorId      String
+  productId     String
+  connected     Boolean  @default(false)
+  lastUsed      DateTime?
+  printCount    Int      @default(0)
+  settings      Json     // Configurações adicionais (velocidade, densidade, etc)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("printer_configs")
+}
+
+// Log de atividades
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action      String   // 'create_table', 'merge_tables', 'cancel_order', etc
+  description String
+  metadata    Json?    // Dados adicionais em formato JSON
+  createdAt   DateTime @default(now())
+
+  @@map("activity_logs")
+}
+
+// Dados para sincronização offline
+model OfflineSync {
+  id          String   @id @default(cuid())
+  entityType  String   // 'order', 'table', 'product', etc
+  entityId    String
+  action      String   // 'create', 'update', 'delete'
+  data        Json
+  synced      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  syncedAt    DateTime?
+
+  @@map("offline_syncs")
+}
