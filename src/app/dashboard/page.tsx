@@ -27,20 +27,49 @@ export default function DashboardPage() {
       return
     }
 
-    // Simula carregamento de stats (implementar API depois)
-    setTimeout(() => {
-      setStats({
-        totalTables: 20,
-        emptyTables: 12,
-        attendingTables: 6,
-        finishedTables: 2,
-        todayRevenue: 2450.90,
-        todayOrders: 87,
-        activeWaiters: 3,
-      })
-      setLoading(false)
-    }, 500)
-  }, [isAuthenticated, router])
+    // Buscar stats reais da API
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/dashboard/stats', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setStats(data.data)
+        } else {
+          // Se API não existir ainda, mostra zeros
+          setStats({
+            totalTables: 0,
+            emptyTables: 0,
+            attendingTables: 0,
+            finishedTables: 0,
+            todayRevenue: 0,
+            todayOrders: 0,
+            activeWaiters: 0,
+          })
+        }
+      } catch (error) {
+        console.error('Erro ao buscar stats:', error)
+        // Em caso de erro, mostra zeros
+        setStats({
+          totalTables: 0,
+          emptyTables: 0,
+          attendingTables: 0,
+          finishedTables: 0,
+          todayRevenue: 0,
+          todayOrders: 0,
+          activeWaiters: 0,
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
+  }, [isAuthenticated, router, token])
 
   const handleLogout = () => {
     logout()
