@@ -29,7 +29,7 @@ export class ThermalPrinter {
   async connect(): Promise<boolean> {
     try {
       // Encontra o dispositivo USB
-      this.device = USB.findByIds(this.config.vendorId, this.config.productId)
+      this.device = USB.findByIds(this.config.vendorId, this.config.productId) || null
 
       if (!this.device) {
         console.error(`Impressora ${this.config.type} não encontrada`)

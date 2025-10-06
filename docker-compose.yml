@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # Banco de dados PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: burguesa-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: burguesa
+      POSTGRES_PASSWORD: burguesa123
+      POSTGRES_DB: burguesa
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - burguesa-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U burguesa"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Aplicação Next.js
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: burguesa-app
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://burguesa:burguesa123@postgres:5432/burguesa?schema=public
+      JWT_SECRET: seu-jwt-secret-super-seguro-aqui-troque-em-producao
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./public/uploads:/app/public/uploads
+    networks:
+      - burguesa-network
+    # Necessário para acesso USB às impressoras
+    privileged: true
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  burguesa-network:
+    driver: bridge

@@ -6,12 +6,13 @@ import { requireAuth } from '@/lib/auth'
 // GET - Busca mesa por ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return requireAuth(async () => {
+      const { id } = await params
     try {
       const table = await prisma.table.findUnique({
-        where: { id: params.id },
+        where: { id: id },
         include: {
           waiter: true,
           orders: {
@@ -49,14 +50,15 @@ export async function GET(
 // PATCH - Atualiza mesa
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return requireAuth(async (req: NextRequest) => {
+      const { id } = await params
     try {
       const data = await req.json()
 
       const table = await prisma.table.update({
-        where: { id: params.id },
+        where: { id: id },
         data,
         include: {
           waiter: true,
@@ -78,9 +80,10 @@ export async function PATCH(
 // DELETE - Remove mesa (apenas recepcionista)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return requireAuth(async (req: NextRequest, user: any) => {
+      const { id } = await params
     try {
       if (user.role !== 'RECEPTIONIST') {
         return NextResponse.json(
@@ -91,7 +94,7 @@ export async function DELETE(
 
       // Verifica se a mesa está vazia
       const table = await prisma.table.findUnique({
-        where: { id: params.id },
+        where: { id: id },
         include: { orders: true },
       })
 
@@ -103,7 +106,7 @@ export async function DELETE(
       }
 
       await prisma.table.delete({
-        where: { id: params.id },
+        where: { id: id },
       })
 
       return NextResponse.json({ success: true })

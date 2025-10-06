@@ -5,12 +5,13 @@ import { requireAuth } from '@/lib/auth'
 // GET - Buscar produto por ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return requireAuth(async () => {
     try {
+      const { id } = await params
       const product = await prisma.product.findUnique({
-        where: { id: params.id }
+        where: { id }
       })
 
       if (!product) {
@@ -34,10 +35,12 @@ export async function GET(
 // PATCH - Atualizar produto (apenas recepcionista)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return requireAuth(async (req: NextRequest, user: any) => {
     try {
+      const { id } = await params
+
       if (user.role !== 'RECEPTIONIST') {
         return NextResponse.json(
           { error: 'Apenas recepcionistas podem atualizar produtos' },
@@ -53,7 +56,7 @@ export async function PATCH(
       }
 
       const product = await prisma.product.update({
-        where: { id: params.id },
+        where: { id },
         data
       })
 
@@ -71,10 +74,12 @@ export async function PATCH(
 // DELETE - Remover produto (apenas recepcionista)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return requireAuth(async (req: NextRequest, user: any) => {
     try {
+      const { id } = await params
+
       if (user.role !== 'RECEPTIONIST') {
         return NextResponse.json(
           { error: 'Apenas recepcionistas podem remover produtos' },
@@ -83,7 +88,7 @@ export async function DELETE(
       }
 
       await prisma.product.delete({
-        where: { id: params.id }
+        where: { id }
       })
 
       return NextResponse.json({ success: true })

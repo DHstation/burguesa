@@ -5,10 +5,12 @@ import { requireAuth } from '@/lib/auth'
 // GET /api/printers/[id] - Busca uma impressora específica
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return requireAuth(async (req: NextRequest, user: any) => {
     try {
+      const { id } = await params
+
       if (user.role !== 'RECEPTIONIST') {
         return NextResponse.json(
           { error: 'Apenas recepcionistas podem acessar impressoras' },
@@ -17,7 +19,7 @@ export async function GET(
       }
 
       const printer = await prisma.printerConfig.findUnique({
-        where: { id: params.id },
+        where: { id },
       })
 
       if (!printer) {
@@ -41,10 +43,12 @@ export async function GET(
 // PATCH /api/printers/[id] - Atualiza uma impressora
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return requireAuth(async (req: NextRequest, user: any) => {
     try {
+      const { id } = await params
+
       if (user.role !== 'RECEPTIONIST') {
         return NextResponse.json(
           { error: 'Apenas recepcionistas podem atualizar impressoras' },
@@ -56,7 +60,7 @@ export async function PATCH(
       const { name, type, vendorId, productId, connected, settings } = body
 
       const existingPrinter = await prisma.printerConfig.findUnique({
-        where: { id: params.id },
+        where: { id },
       })
 
       if (!existingPrinter) {
@@ -73,7 +77,7 @@ export async function PATCH(
         const nameExists = await prisma.printerConfig.findFirst({
           where: {
             name,
-            id: { not: params.id },
+            id: { not: id },
           },
         })
 
@@ -119,7 +123,7 @@ export async function PATCH(
       updateData.updatedAt = new Date()
 
       const printer = await prisma.printerConfig.update({
-        where: { id: params.id },
+        where: { id },
         data: updateData,
       })
 
@@ -150,10 +154,12 @@ export async function PATCH(
 // DELETE /api/printers/[id] - Deleta uma impressora
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return requireAuth(async (req: NextRequest, user: any) => {
     try {
+      const { id } = await params
+
       if (user.role !== 'RECEPTIONIST') {
         return NextResponse.json(
           { error: 'Apenas recepcionistas podem deletar impressoras' },
@@ -162,7 +168,7 @@ export async function DELETE(
       }
 
       const existingPrinter = await prisma.printerConfig.findUnique({
-        where: { id: params.id },
+        where: { id },
       })
 
       if (!existingPrinter) {
@@ -173,7 +179,7 @@ export async function DELETE(
       }
 
       await prisma.printerConfig.delete({
-        where: { id: params.id },
+        where: { id },
       })
 
       // Registra log

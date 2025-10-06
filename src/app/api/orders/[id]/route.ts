@@ -5,12 +5,13 @@ import { requireAuth } from '@/lib/auth'
 // GET /api/orders/[id] - Busca um pedido específico
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return requireAuth(async (req: NextRequest, user: any) => {
     try {
+      const { id } = await params
       const order = await prisma.order.findUnique({
-        where: { id: params.id },
+        where: { id },
         include: {
           table: true,
           waiter: {
@@ -57,16 +58,17 @@ export async function GET(
 // PATCH /api/orders/[id] - Atualiza um pedido
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return requireAuth(async (req: NextRequest, user: any) => {
     try {
+      const { id } = await params
       const body = await req.json()
       const { status, items, serviceCharge } = body
 
       // Busca o pedido atual
       const existingOrder = await prisma.order.findUnique({
-        where: { id: params.id },
+        where: { id },
         include: {
           items: true,
           table: true,
@@ -103,7 +105,7 @@ export async function PATCH(
       if (items) {
         // Remove itens antigos
         await prisma.orderItem.deleteMany({
-          where: { orderId: params.id },
+          where: { orderId: id },
         })
 
         // Calcula novo total
@@ -152,7 +154,7 @@ export async function PATCH(
       }
 
       const order = await prisma.order.update({
-        where: { id: params.id },
+        where: { id },
         data: updateData,
         include: {
           table: true,
@@ -199,12 +201,13 @@ export async function PATCH(
 // DELETE /api/orders/[id] - Cancela um pedido
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return requireAuth(async (req: NextRequest, user: any) => {
     try {
+      const { id } = await params
       const existingOrder = await prisma.order.findUnique({
-        where: { id: params.id },
+        where: { id },
         include: {
           table: true,
         },
@@ -227,7 +230,7 @@ export async function DELETE(
 
       // Marca como cancelado ao invés de deletar
       const order = await prisma.order.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           status: 'CANCELLED',
         },
