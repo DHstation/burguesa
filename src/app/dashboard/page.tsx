@@ -246,7 +246,10 @@ export default function DashboardPage() {
                 <p className="text-gray-600">Gerenciar mesas e atendimentos</p>
               </button>
 
-              <button className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105">
+              <button
+                onClick={() => router.push('/products')}
+                className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105"
+              >
                 <div className="text-6xl mb-4">🍔</div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Produtos</h3>
                 <p className="text-gray-600">Cardápio e gerenciamento</p>
