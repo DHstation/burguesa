@@ -83,6 +83,13 @@ export default function OrdersPage() {
   const [showModal, setShowModal] = useState(false)
   const [editingOrder, setEditingOrder] = useState<Order | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [waiters, setWaiters] = useState<{ id: string; name: string }[]>([])
+
+  // Filter state
+  const [filterTableId, setFilterTableId] = useState('')
+  const [filterWaiterId, setFilterWaiterId] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
+  const [filterDate, setFilterDate] = useState('')
 
   // Form state
   const [selectedTableId, setSelectedTableId] = useState('')
@@ -102,12 +109,26 @@ export default function OrdersPage() {
     fetchOrders()
     fetchProducts()
     fetchTables()
+    fetchWaiters()
   }, [token, router])
+
+  useEffect(() => {
+    fetchOrders()
+  }, [filterTableId, filterWaiterId, filterStatus, filterDate])
 
   const fetchOrders = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/orders', {
+      const params = new URLSearchParams()
+
+      if (filterTableId) params.append('tableId', filterTableId)
+      if (filterWaiterId) params.append('waiterId', filterWaiterId)
+      if (filterStatus) params.append('status', filterStatus)
+      if (filterDate) params.append('date', filterDate)
+
+      const url = `/api/orders${params.toString() ? `?${params.toString()}` : ''}`
+
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -160,6 +181,31 @@ export default function OrdersPage() {
     } catch (error) {
       console.error('Erro ao carregar mesas:', error)
     }
+  }
+
+  const fetchWaiters = async () => {
+    try {
+      const response = await fetch('/api/users?role=WAITER', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        const waitersData = result.data || result
+        setWaiters(Array.isArray(waitersData) ? waitersData : [])
+      }
+    } catch (error) {
+      console.error('Erro ao carregar garçons:', error)
+    }
+  }
+
+  const handleClearFilters = () => {
+    setFilterTableId('')
+    setFilterWaiterId('')
+    setFilterStatus('')
+    setFilterDate('')
   }
 
   const handleOpenModal = (order?: Order) => {
@@ -348,6 +394,90 @@ export default function OrdersPage() {
             >
               + Novo Pedido
             </button>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Filtros</h2>
+            <button
+              onClick={handleClearFilters}
+              className="text-sm text-blue-600 hover:text-blue-800"
+            >
+              Limpar Filtros
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Mesa */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Mesa
+              </label>
+              <select
+                value={filterTableId}
+                onChange={(e) => setFilterTableId(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Todas as mesas</option>
+                {tables.map((table) => (
+                  <option key={table.id} value={table.id}>
+                    Mesa {table.number}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Garçom */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Garçom
+              </label>
+              <select
+                value={filterWaiterId}
+                onChange={(e) => setFilterWaiterId(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Todos os garçons</option>
+                {waiters.map((waiter) => (
+                  <option key={waiter.id} value={waiter.id}>
+                    {waiter.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Status */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Status
+              </label>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Todos os status</option>
+                <option value="PENDING">Pendente</option>
+                <option value="PREPARING">Preparando</option>
+                <option value="READY">Pronto</option>
+                <option value="DELIVERED">Entregue</option>
+                <option value="CANCELLED">Cancelado</option>
+              </select>
+            </div>
+
+            {/* Data */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Data
+              </label>
+              <input
+                type="date"
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
         </div>
 

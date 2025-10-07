@@ -9,6 +9,8 @@ export async function GET(request: NextRequest) {
       const { searchParams } = new URL(req.url)
       const status = searchParams.get('status')
       const tableId = searchParams.get('tableId')
+      const waiterId = searchParams.get('waiterId')
+      const date = searchParams.get('date')
 
       const where: any = {}
 
@@ -20,7 +22,25 @@ export async function GET(request: NextRequest) {
         where.tableId = tableId
       }
 
-      // Garçons só veem seus próprios pedidos
+      // Filtro por garçom (se fornecido)
+      if (waiterId) {
+        where.waiterId = waiterId
+      }
+
+      // Filtro por data
+      if (date) {
+        const startDate = new Date(date)
+        startDate.setHours(0, 0, 0, 0)
+        const endDate = new Date(date)
+        endDate.setHours(23, 59, 59, 999)
+
+        where.createdAt = {
+          gte: startDate,
+          lte: endDate,
+        }
+      }
+
+      // Garçons só veem seus próprios pedidos (sobrescreve filtro de waiterId)
       if (user.role === 'WAITER') {
         where.waiterId = user.userId
       }
