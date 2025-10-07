@@ -323,10 +323,12 @@ export default function OrdersPage() {
 
     try {
       const response = await fetch(`/api/orders/${orderId}`, {
-        method: 'DELETE',
+        method: 'PATCH',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
+        body: JSON.stringify({ status: 'CANCELLED' }),
       })
 
       if (response.ok) {
@@ -338,6 +340,50 @@ export default function OrdersPage() {
     } catch (error) {
       console.error('Erro ao cancelar pedido:', error)
       alert('Erro ao cancelar pedido')
+    }
+  }
+
+  const handleDeleteOrder = async (orderId: string) => {
+    const confirmed = confirm(
+      '⚠️ ATENÇÃO: EXCLUSÃO PERMANENTE\n\n' +
+      'Esta ação irá EXCLUIR PERMANENTEMENTE este pedido do banco de dados.\n\n' +
+      'Esta operação NÃO PODE SER DESFEITA!\n\n' +
+      'Deseja realmente continuar?'
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    // Segunda confirmação
+    const doubleConfirm = confirm(
+      '⚠️ CONFIRME NOVAMENTE\n\n' +
+      'Você está prestes a excluir permanentemente este pedido.\n\n' +
+      'Tem certeza absoluta?'
+    )
+
+    if (!doubleConfirm) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (response.ok) {
+        await fetchOrders()
+        alert('Pedido excluído permanentemente com sucesso')
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Erro ao excluir pedido')
+      }
+    } catch (error) {
+      console.error('Erro ao excluir pedido:', error)
+      alert('Erro ao excluir pedido')
     }
   }
 
@@ -576,7 +622,7 @@ export default function OrdersPage() {
                         {new Date(order.createdAt).toLocaleString('pt-BR')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <div className="flex gap-2">
+                        <div className="flex gap-3 items-center">
                           <button
                             onClick={() => handleOpenModal(order)}
                             className="text-blue-600 hover:text-blue-800"
@@ -586,9 +632,18 @@ export default function OrdersPage() {
                           {user?.role === 'RECEPTIONIST' && order.status !== 'CANCELLED' && (
                             <button
                               onClick={() => handleCancelOrder(order.id)}
-                              className="text-red-600 hover:text-red-800"
+                              className="text-orange-600 hover:text-orange-800"
                             >
                               Cancelar
+                            </button>
+                          )}
+                          {user?.role === 'RECEPTIONIST' && (
+                            <button
+                              onClick={() => handleDeleteOrder(order.id)}
+                              className="text-red-600 hover:text-red-800"
+                              title="Excluir permanentemente"
+                            >
+                              🗑️
                             </button>
                           )}
                         </div>

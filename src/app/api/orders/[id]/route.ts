@@ -198,7 +198,7 @@ export async function PATCH(
   })(request)
 }
 
-// DELETE /api/orders/[id] - Cancela um pedido
+// DELETE /api/orders/[id] - Deleta permanentemente um pedido
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -210,6 +210,7 @@ export async function DELETE(
         where: { id },
         include: {
           table: true,
+          items: true,
         },
       })
 
@@ -220,62 +221,57 @@ export async function DELETE(
         )
       }
 
-      // Apenas recepcionistas podem cancelar pedidos
+      // Apenas recepcionistas podem deletar pedidos
       if (user.role !== 'RECEPTIONIST') {
         return NextResponse.json(
-          { error: 'Apenas recepcionistas podem cancelar pedidos' },
+          { error: 'Apenas recepcionistas podem deletar pedidos' },
           { status: 403 }
         )
       }
 
-      // Marca como cancelado ao invés de deletar
-      const order = await prisma.order.update({
-        where: { id },
-        data: {
-          status: 'CANCELLED',
-        },
-        include: {
-          table: true,
-          waiter: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+      // Atualiza total da mesa (se o pedido não estiver cancelado)
+      if (existingOrder.status !== 'CANCELLED') {
+        await prisma.table.update({
+          where: { id: existingOrder.tableId },
+          data: {
+            currentTotal: {
+              decrement: existingOrder.finalTotal,
             },
           },
-          items: {
-            include: {
-              product: true,
-            },
-          },
-        },
-      })
+        })
+      }
 
-      // Atualiza total da mesa
-      await prisma.table.update({
-        where: { id: existingOrder.tableId },
-        data: {
-          currentTotal: {
-            decrement: existingOrder.finalTotal,
-          },
-        },
-      })
-
-      // Registra log
+      // Registra log antes de deletar
       await prisma.activityLog.create({
         data: {
           userId: user.userId,
-          action: 'cancel_order',
-          description: `Cancelou pedido da mesa ${order.table.number}`,
+          action: 'delete_order',
+          description: `Deletou permanentemente pedido da mesa ${existingOrder.table.number}`,
           metadata: {
-            orderId: order.id,
-            tableId: order.tableId,
+            orderId: existingOrder.id,
+            tableId: existingOrder.tableId,
+            tableNumber: existingOrder.table.number,
             total: existingOrder.finalTotal,
+            status: existingOrder.status,
+            itemsCount: existingOrder.items.length,
           },
         },
       })
 
-      return NextResponse.json(order)
+      // Deleta os itens do pedido (cascade já faz isso, mas explicitando)
+      await prisma.orderItem.deleteMany({
+        where: { orderId: id },
+      })
+
+      // Deleta o pedido permanentemente
+      await prisma.order.delete({
+        where: { id },
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: 'Pedido deletado permanentemente com sucesso'
+      })
     } catch (error) {
       console.error('Erro ao cancelar pedido:', error)
       return NextResponse.json(
