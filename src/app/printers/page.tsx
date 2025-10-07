@@ -190,34 +190,49 @@ export default function PrintersPage() {
     setTesting(printerId)
 
     try {
-      // Simula teste de conexão (você pode implementar a lógica real depois)
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
-      // Atualiza status de conexão
-      const response = await fetch(`/api/printers/${printerId}`, {
-        method: 'PATCH',
+      const response = await fetch(`/api/printers/${printerId}/test`, {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ connected: true }),
       })
+
+      const result = await response.json()
 
       if (response.ok) {
         await fetchPrinters()
-        alert('Conexão testada com sucesso!')
+
+        if (result.success && result.connected) {
+          alert(`✅ ${result.message}`)
+        } else {
+          alert(`⚠️ ${result.message}`)
+        }
       } else {
-        alert('Erro ao testar conexão')
+        alert(`❌ Erro: ${result.error || result.message || 'Erro ao testar conexão'}`)
       }
     } catch (error) {
       console.error('Erro ao testar conexão:', error)
-      alert('Erro ao testar conexão')
+      alert('❌ Erro ao testar conexão. Verifique o console para mais detalhes.')
     } finally {
       setTesting(null)
     }
   }
 
   const handleToggleConnection = async (printerId: string, currentStatus: boolean) => {
+    // Se está tentando conectar, usa o teste real
+    if (!currentStatus) {
+      const confirmed = confirm(
+        'Deseja testar a conexão com a impressora?\n\n' +
+        'Isso verificará se o dispositivo USB está conectado e acessível.'
+      )
+
+      if (confirmed) {
+        await handleTestConnection(printerId)
+      }
+      return
+    }
+
+    // Se está desconectando, apenas atualiza o status
     try {
       const response = await fetch(`/api/printers/${printerId}`, {
         method: 'PATCH',
@@ -225,14 +240,14 @@ export default function PrintersPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ connected: !currentStatus }),
+        body: JSON.stringify({ connected: false }),
       })
 
       if (response.ok) {
         await fetchPrinters()
       }
     } catch (error) {
-      console.error('Erro ao alternar conexão:', error)
+      console.error('Erro ao desconectar impressora:', error)
     }
   }
 
