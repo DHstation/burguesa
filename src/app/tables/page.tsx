@@ -158,6 +158,74 @@ export default function TablesPage() {
     }
   }
 
+  const handlePrintTable = async (tableId: string) => {
+    try {
+      const response = await fetch(`/api/tables/${tableId}/print`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      })
+
+      if (response.ok) {
+        alert('Resumo da mesa impresso com sucesso!')
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Erro ao imprimir resumo')
+      }
+    } catch (error) {
+      console.error('Erro ao imprimir resumo:', error)
+      alert('Erro ao imprimir resumo')
+    }
+  }
+
+  const handleFinalizeTable = async (tableId: string, tableNumber: number) => {
+    const confirmed = confirm(
+      `Finalizar Mesa ${tableNumber}?\n\n` +
+      'Esta ação irá:\n' +
+      '✓ Marcar a mesa como FINALIZADA\n' +
+      '✓ Imprimir o resumo completo da mesa\n\n' +
+      'Deseja continuar?'
+    )
+
+    if (!confirmed) return
+
+    try {
+      // Primeiro finaliza a mesa
+      const finalizeResponse = await fetch(`/api/tables/${tableId}/finalize`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      })
+
+      if (!finalizeResponse.ok) {
+        const data = await finalizeResponse.json()
+        alert(data.error || 'Erro ao finalizar mesa')
+        return
+      }
+
+      // Depois imprime o resumo
+      const printResponse = await fetch(`/api/tables/${tableId}/print`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      })
+
+      if (printResponse.ok) {
+        await fetchTables() // Recarrega as mesas
+        alert(`Mesa ${tableNumber} finalizada e impressa com sucesso!`)
+      } else {
+        await fetchTables()
+        alert(`Mesa ${tableNumber} finalizada, mas houve erro ao imprimir. Você pode imprimir manualmente.`)
+      }
+    } catch (error) {
+      console.error('Erro ao finalizar mesa:', error)
+      alert('Erro ao finalizar mesa')
+    }
+  }
+
   if (!user) return null
 
   return (
@@ -244,30 +312,76 @@ export default function TablesPage() {
 
             {/* Grid de Mesas */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {tables.map((table) => (
-                <div key={table.id} className="relative">
-                  <TableCard
-                    table={table}
-                    onClick={() => {
-                      // TODO: Abrir modal com detalhes da mesa
-                      alert(`Mesa ${table.number} - Status: ${table.status}`)
-                    }}
-                    canMerge={false} // Drag & drop virá depois
-                  />
-                  {user?.role === 'RECEPTIONIST' && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleOpenWaiterModal(table)
+              {tables.map((table) => {
+                // Debug para ver se os botões devem aparecer
+                const isReceptionist = user?.role === 'RECEPTIONIST'
+                const hasValidStatus = table.status === 'ATTENDING' || table.status === 'FINISHED'
+                // Removido validação de total > 0 para permitir finalizar mesas com qualquer valor
+                const shouldShowButtons = isReceptionist && hasValidStatus
+
+                console.log(`Mesa ${table.number}:`, {
+                  status: table.status,
+                  total: table.currentTotal,
+                  role: user?.role,
+                  shouldShowButtons
+                })
+
+                return (
+                  <div key={table.id} className="relative">
+                    <TableCard
+                      table={table}
+                      onClick={() => {
+                        // TODO: Abrir modal com detalhes da mesa
+                        alert(`Mesa ${table.number} - Status: ${table.status}`)
                       }}
-                      className="absolute top-2 right-2 bg-white hover:bg-gray-100 text-gray-700 p-2 rounded-lg shadow-md transition z-10"
-                      title="Atribuir garçom"
-                    >
-                      👤
-                    </button>
-                  )}
-                </div>
-              ))}
+                      canMerge={false} // Drag & drop virá depois
+                    />
+                    {user?.role === 'RECEPTIONIST' && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleOpenWaiterModal(table)
+                          }}
+                          className="absolute top-2 right-2 bg-white hover:bg-gray-100 text-gray-700 p-2 rounded-lg shadow-md transition z-10"
+                          title="Atribuir garçom"
+                        >
+                          👤
+                        </button>
+
+                        {/* Botões de impressão e finalização */}
+                        {shouldShowButtons && (
+                          <div className="absolute bottom-2 left-2 right-2 flex gap-2 z-10">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handlePrintTable(table.id)
+                              }}
+                              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-1 px-2 rounded shadow-md transition"
+                              title="Imprimir resumo"
+                            >
+                              🖨️
+                            </button>
+
+                            {table.status === 'ATTENDING' && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleFinalizeTable(table.id, table.number)
+                                }}
+                                className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs py-1 px-2 rounded shadow-md transition"
+                                title="Finalizar mesa"
+                              >
+                                ✓ Finalizar
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </>
         )}
