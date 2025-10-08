@@ -8,12 +8,12 @@ import { Product, ProductCategory } from '@/types'
 import { Dialog } from '@headlessui/react'
 
 const categoryLabels: Record<ProductCategory, string> = {
-  DRINKS: 'Bebidas',
-  SNACKS: 'Lanches',
-  DESSERTS: 'Sobremesas',
-  MEALS: 'Refeições',
-  APPETIZERS: 'Entradas',
-  OTHER: 'Outros'
+  PETISCOS: 'Petisco',
+  BEBIDAS_SEM_ALCOOL: 'Bebidas sem álcool',
+  BEBIDAS_COM_ALCOOL: 'Bebidas com álcool',
+  DRINKS_ESPECIAIS: 'Drinks',
+  SUCOS: 'Sucos',
+  OUTROS: 'Outros'
 }
 
 export default function ProductsPage() {
@@ -31,7 +31,7 @@ export default function ProductsPage() {
     name: '',
     description: '',
     price: '',
-    category: 'SNACKS' as ProductCategory,
+    category: 'PETISCOS' as ProductCategory,
     imageUrl: ''
   })
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -72,7 +72,7 @@ export default function ProductsPage() {
       name: '',
       description: '',
       price: '',
-      category: 'SNACKS',
+      category: 'PETISCOS',
       imageUrl: ''
     })
     setImageFile(null)

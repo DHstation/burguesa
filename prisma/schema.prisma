@@ -23,12 +23,12 @@ enum TableStatus {
 
 // Categorias de produtos
 enum ProductCategory {
-  DRINKS      // Bebidas
-  SNACKS      // Lanches
-  DESSERTS    // Sobremesas
-  MEALS       // Refeições
-  APPETIZERS  // Entradas
-  OTHER       // Outros
+  PETISCOS              // Petisco
+  BEBIDAS_SEM_ALCOOL    // Bebidas sem álcool
+  BEBIDAS_COM_ALCOOL    // Bebidas com álcool
+  DRINKS_ESPECIAIS      // Drinks
+  SUCOS                 // Sucos
+  OUTROS                // Outros
 }
 
 // Status do pedido
