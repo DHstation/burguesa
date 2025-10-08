@@ -35,16 +35,11 @@ export async function GET(request: NextRequest) {
       // Calcular receita
       const todayRevenue = todayOrders.reduce((sum, order) => sum + order.finalTotal, 0)
 
-      // Garçons ativos (que fizeram pelo menos 1 pedido hoje)
-      const activeWaiters = await prisma.order.findMany({
+      // Garçons ativos (cadastrados com status ativo)
+      const activeWaitersCount = await prisma.user.count({
         where: {
-          createdAt: {
-            gte: today
-          }
-        },
-        distinct: ['waiterId'],
-        select: {
-          waiterId: true
+          role: 'WAITER',
+          active: true
         }
       })
 
@@ -57,7 +52,7 @@ export async function GET(request: NextRequest) {
           finishedTables,
           todayRevenue,
           todayOrders: todayOrders.length,
-          activeWaiters: activeWaiters.length,
+          activeWaiters: activeWaitersCount,
         }
       })
     } catch (error) {
