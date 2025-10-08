@@ -69,6 +69,39 @@ export default function WaiterPage() {
     router.push(`/waiter/${tableId}`)
   }
 
+  const handleEmptyTable = async (tableId: string, tableNumber: number) => {
+    const confirmed = confirm(
+      `Esvaziar Mesa ${tableNumber}?\n\n` +
+      `Esta ação irá:\n` +
+      `✓ Salvar a sessão completa no histórico\n` +
+      `✓ Resetar a mesa para VAZIA\n` +
+      `✓ Remover todos os garçons atribuídos\n` +
+      `✓ Zerar o total da mesa\n\n` +
+      `A mesa ficará pronta para novos clientes.\n\n` +
+      `Deseja continuar?`
+    )
+
+    if (!confirmed) return
+
+    try {
+      const response = await fetch(`/api/tables/${tableId}/empty`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      if (response.ok) {
+        await fetchMyTables()
+        alert(`Mesa ${tableNumber} esvaziada! Sessão salva no histórico.`)
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Erro ao esvaziar mesa')
+      }
+    } catch (error) {
+      console.error('Erro ao esvaziar mesa:', error)
+      alert('Erro ao esvaziar mesa')
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'EMPTY':
@@ -180,6 +213,13 @@ export default function WaiterPage() {
                       className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition font-medium"
                     >
                       ▶️ Iniciar Atendimento
+                    </button>
+                  ) : table.status === 'FINISHED' ? (
+                    <button
+                      onClick={() => handleEmptyTable(table.id, table.number)}
+                      className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition font-medium"
+                    >
+                      🧹 Esvaziar Mesa
                     </button>
                   ) : (
                     <button

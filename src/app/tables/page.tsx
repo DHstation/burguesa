@@ -199,6 +199,41 @@ export default function TablesPage() {
     }
   }
 
+  const handleEmptyTable = async (tableId: string, tableNumber: number) => {
+    const confirmed = confirm(
+      `Esvaziar Mesa ${tableNumber}?\n\n` +
+      `Esta ação irá:\n` +
+      `✓ Salvar a sessão completa no histórico\n` +
+      `✓ Resetar a mesa para VAZIA\n` +
+      `✓ Remover todos os garçons atribuídos\n` +
+      `✓ Zerar o total da mesa\n\n` +
+      `A mesa ficará pronta para novos clientes.\n\n` +
+      `Deseja continuar?`
+    )
+
+    if (!confirmed) return
+
+    try {
+      const response = await fetch(`/api/tables/${tableId}/empty`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      })
+
+      if (response.ok) {
+        await fetchTables()
+        alert(`Mesa ${tableNumber} esvaziada! Sessão salva no histórico.`)
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Erro ao esvaziar mesa')
+      }
+    } catch (error) {
+      console.error('Erro ao esvaziar mesa:', error)
+      alert('Erro ao esvaziar mesa')
+    }
+  }
+
   if (!user) return null
 
   return (
@@ -359,6 +394,19 @@ export default function TablesPage() {
                                 title="Finalizar mesa"
                               >
                                 ✓ Finalizar
+                              </button>
+                            )}
+
+                            {table.status === 'FINISHED' && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleEmptyTable(table.id, table.number)
+                                }}
+                                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-xs py-1 px-2 rounded shadow-md transition"
+                                title="Esvaziar mesa e salvar no histórico"
+                              >
+                                🧹 Esvaziar
                               </button>
                             )}
                           </div>

@@ -54,7 +54,6 @@ model User {
   // Relacionamentos
   tables        Table[]
   orders        Order[]
-  sessions      TableSession[]
   logs          ActivityLog[]
   tableWaiters  TableWaiter[]
 
@@ -102,14 +101,19 @@ model TableWaiter {
 
 // Histórico de sessões das mesas
 model TableSession {
-  id          String    @id @default(cuid())
-  tableId     String
-  table       Table     @relation(fields: [tableId], references: [id], onDelete: Cascade)
-  waiterId    String
-  waiter      User      @relation(fields: [waiterId], references: [id], onDelete: Cascade)
-  startTime   DateTime  @default(now())
-  endTime     DateTime?
-  totalAmount Float     @default(0)
+  id             String   @id @default(cuid())
+  tableNumber    Int      // Número da mesa
+  tableId        String
+  table          Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  waiters        Json     // Array de garçons que atenderam [{id, name}]
+  startTime      DateTime
+  endTime        DateTime
+  totalAmount    Float    @default(0)
+  serviceCharge  Float    @default(0)
+  ordersData     Json     // Dados completos dos pedidos da sessão
+  itemsCount     Int      @default(0) // Total de itens
+  ordersCount    Int      @default(0) // Total de pedidos
+  createdAt      DateTime @default(now())
 
   @@map("table_sessions")
 }
