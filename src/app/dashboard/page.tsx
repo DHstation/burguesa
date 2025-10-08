@@ -237,35 +237,64 @@ export default function DashboardPage() {
 
             {/* Menu de Navegação */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <button
-                onClick={() => router.push('/tables')}
-                className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105"
-              >
-                <div className="text-6xl mb-4">🪑</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Mesas</h3>
-                <p className="text-gray-600">Gerenciar mesas e atendimentos</p>
-              </button>
-
-              <button
-                onClick={() => router.push('/products')}
-                className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105"
-              >
-                <div className="text-6xl mb-4">🍔</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Produtos</h3>
-                <p className="text-gray-600">Cardápio e gerenciamento</p>
-              </button>
-
-              <button
-                onClick={() => router.push('/orders')}
-                className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105"
-              >
-                <div className="text-6xl mb-4">📋</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Pedidos</h3>
-                <p className="text-gray-600">Visualizar todos os pedidos</p>
-              </button>
-
-              {user.role === 'RECEPTIONIST' && (
+              {user.role === 'WAITER' ? (
                 <>
+                  <button
+                    onClick={() => router.push('/waiter')}
+                    className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105"
+                  >
+                    <div className="text-6xl mb-4">👨‍🍳</div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Minhas Mesas</h3>
+                    <p className="text-gray-600">Ver e atender minhas mesas</p>
+                  </button>
+
+                  <button
+                    onClick={() => router.push('/products')}
+                    className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105"
+                  >
+                    <div className="text-6xl mb-4">🍔</div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Cardápio</h3>
+                    <p className="text-gray-600">Visualizar cardápio</p>
+                  </button>
+
+                  <button
+                    onClick={() => router.push('/orders')}
+                    className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105"
+                  >
+                    <div className="text-6xl mb-4">📋</div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Meus Pedidos</h3>
+                    <p className="text-gray-600">Ver meus pedidos</p>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => router.push('/tables')}
+                    className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105"
+                  >
+                    <div className="text-6xl mb-4">🪑</div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Mesas</h3>
+                    <p className="text-gray-600">Gerenciar mesas e atendimentos</p>
+                  </button>
+
+                  <button
+                    onClick={() => router.push('/products')}
+                    className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105"
+                  >
+                    <div className="text-6xl mb-4">🍔</div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Produtos</h3>
+                    <p className="text-gray-600">Cardápio e gerenciamento</p>
+                  </button>
+
+                  <button
+                    onClick={() => router.push('/orders')}
+                    className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105"
+                  >
+                    <div className="text-6xl mb-4">📋</div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Pedidos</h3>
+                    <p className="text-gray-600">Visualizar todos os pedidos</p>
+                  </button>
+
                   <button
                     onClick={() => router.push('/printers')}
                     className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105"
@@ -280,14 +309,14 @@ export default function DashboardPage() {
                     <h3 className="text-xl font-bold text-gray-900 mb-2">Garçons</h3>
                     <p className="text-gray-600">Gerenciar garçons</p>
                   </button>
+
+                  <button className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105">
+                    <div className="text-6xl mb-4">📈</div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Histórico</h3>
+                    <p className="text-gray-600">Relatórios e estatísticas</p>
+                  </button>
                 </>
               )}
-
-              <button className="bg-white hover:bg-gray-50 rounded-lg shadow-lg p-8 text-center transition transform hover:scale-105">
-                <div className="text-6xl mb-4">📈</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Histórico</h3>
-                <p className="text-gray-600">Relatórios e estatísticas</p>
-              </button>
             </div>
           </>
         )}
