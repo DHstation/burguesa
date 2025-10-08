@@ -152,6 +152,53 @@ export default function TablesPage() {
     }
   }
 
+  const handleDeleteTable = async (tableId: string, tableNumber: number) => {
+    const confirmed = confirm(
+      `⚠️ ATENÇÃO: EXCLUSÃO PERMANENTE\n\n` +
+      `Tem certeza que deseja excluir a Mesa ${tableNumber}?\n\n` +
+      `Esta ação irá:\n` +
+      `• Excluir PERMANENTEMENTE a mesa\n` +
+      `• Excluir TODOS os pedidos associados\n` +
+      `• Esta operação NÃO PODE SER DESFEITA!\n\n` +
+      `Deseja continuar?`
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    // Segunda confirmação
+    const doubleConfirm = confirm(
+      `⚠️ CONFIRME NOVAMENTE\n\n` +
+      `Você está prestes a excluir permanentemente a Mesa ${tableNumber}.\n\n` +
+      `Tem certeza absoluta?`
+    )
+
+    if (!doubleConfirm) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/tables/${tableId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      })
+
+      if (response.ok) {
+        await fetchTables()
+        alert(`Mesa ${tableNumber} excluída com sucesso!`)
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Erro ao excluir mesa')
+      }
+    } catch (error) {
+      console.error('Erro ao excluir mesa:', error)
+      alert('Erro ao excluir mesa')
+    }
+  }
+
   if (!user) return null
 
   return (
@@ -264,6 +311,18 @@ export default function TablesPage() {
                     />
                     {user?.role === 'RECEPTIONIST' && (
                       <>
+                        {/* Botão de exclusão no canto superior esquerdo */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteTable(table.id, table.number)
+                          }}
+                          className="absolute top-2 left-2 bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg shadow-md transition z-10"
+                          title="Excluir mesa permanentemente"
+                        >
+                          🗑️
+                        </button>
+
                         {/* Botão de histórico no canto superior direito */}
                         <button
                           onClick={(e) => {
