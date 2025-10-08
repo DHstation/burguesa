@@ -25,15 +25,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
     }
 
-    // Buscar mesas atribuídas ao garçom
-    const tables = await prisma.table.findMany({
+    // Buscar mesas atribuídas ao garçom (via tableWaiters)
+    const tableWaiters = await prisma.tableWaiter.findMany({
       where: {
         waiterId: user.id
       },
+      include: {
+        table: true
+      },
       orderBy: {
-        number: 'asc'
+        table: {
+          number: 'asc'
+        }
       }
     })
+
+    // Extrair apenas as mesas
+    const tables = tableWaiters.map(tw => tw.table)
 
     return NextResponse.json({
       success: true,

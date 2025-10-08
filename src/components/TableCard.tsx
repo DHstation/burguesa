@@ -81,7 +81,18 @@ export default function TableCard({ table, onClick, canMerge }: TableCardProps) 
 
       {/* Informações */}
       <div className="text-white text-center space-y-2">
-        {table.waiter && (
+        {(table as any).tableWaiters && (table as any).tableWaiters.length > 0 ? (
+          <div className="text-sm">
+            <span className="font-semibold">
+              {(table as any).tableWaiters.length > 1 ? 'Garçons:' : 'Garçom:'}
+            </span>
+            <div className="mt-1">
+              {(table as any).tableWaiters.map((tw: any) => (
+                <div key={tw.id}>{tw.waiter.name}</div>
+              ))}
+            </div>
+          </div>
+        ) : table.waiter && (
           <p className="text-sm">
             <span className="font-semibold">Garçom:</span> {table.waiter.name}
           </p>

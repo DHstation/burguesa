@@ -17,6 +17,20 @@ export async function GET(request: NextRequest) {
               role: true,
             },
           },
+          tableWaiters: {
+            include: {
+              waiter: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+            orderBy: {
+              assignedAt: 'asc',
+            },
+          },
           orders: {
             include: {
               items: {

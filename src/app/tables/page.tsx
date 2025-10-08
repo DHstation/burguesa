@@ -20,7 +20,7 @@ export default function TablesPage() {
   const [waiters, setWaiters] = useState<Waiter[]>([])
   const [showWaiterModal, setShowWaiterModal] = useState(false)
   const [selectedTable, setSelectedTable] = useState<Table | null>(null)
-  const [selectedWaiterId, setSelectedWaiterId] = useState<string>('')
+  const [selectedWaiterIds, setSelectedWaiterIds] = useState<string[]>([])
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -42,6 +42,11 @@ export default function TablesPage() {
 
       if (response.ok) {
         const data = await response.json()
+        console.log('📋 Mesas recebidas:', data.data)
+        // Log da primeira mesa para debug
+        if (data.data && data.data.length > 0) {
+          console.log('🔍 Primeira mesa tableWaiters:', data.data[0].tableWaiters)
+        }
         setTables(data.data || [])
       }
     } catch (error) {
@@ -70,42 +75,60 @@ export default function TablesPage() {
 
   const handleOpenWaiterModal = (table: Table) => {
     setSelectedTable(table)
-    setSelectedWaiterId(table.waiter?.id || '')
+    // Pegar IDs dos garçons já atribuídos
+    const currentWaiterIds = (table as any).tableWaiters?.map((tw: any) => tw.waiterId) || []
+    setSelectedWaiterIds(currentWaiterIds)
     setShowWaiterModal(true)
   }
 
   const handleCloseWaiterModal = () => {
     setShowWaiterModal(false)
     setSelectedTable(null)
-    setSelectedWaiterId('')
+    setSelectedWaiterIds([])
   }
 
-  const handleAssignWaiter = async () => {
+  const toggleWaiter = (waiterId: string) => {
+    setSelectedWaiterIds(prev => {
+      if (prev.includes(waiterId)) {
+        return prev.filter(id => id !== waiterId)
+      } else {
+        return [...prev, waiterId]
+      }
+    })
+  }
+
+  const handleAssignWaiters = async () => {
     if (!selectedTable) return
 
+    console.log('🔍 Atribuindo garçons:', selectedWaiterIds)
+
     try {
-      const response = await fetch(`/api/tables/${selectedTable.id}`, {
+      const response = await fetch(`/api/tables/${selectedTable.id}/waiters`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          waiterId: selectedWaiterId || null
+          waiterIds: selectedWaiterIds
         })
       })
 
       if (response.ok) {
+        const data = await response.json()
+        console.log('✅ Resposta da API:', data)
+        console.log('📊 TableWaiters retornados:', data.data?.tableWaiters)
+
         await fetchTables()
         handleCloseWaiterModal()
-        alert('Garçom atribuído com sucesso!')
+        alert(`${selectedWaiterIds.length} garçom(ns) atribuído(s) com sucesso!`)
       } else {
         const data = await response.json()
-        alert(data.error || 'Erro ao atribuir garçom')
+        alert(data.error || 'Erro ao atribuir garçons')
       }
     } catch (error) {
-      console.error('Erro ao atribuir garçom:', error)
-      alert('Erro ao atribuir garçom')
+      console.error('Erro ao atribuir garçons:', error)
+      alert('Erro ao atribuir garçons')
     }
   }
 
@@ -250,34 +273,40 @@ export default function TablesPage() {
         )}
       </main>
 
-      {/* Modal de Atribuir Garçom */}
+      {/* Modal de Atribuir Garçons */}
       {showWaiterModal && selectedTable && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
             <div className="p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                Atribuir Garçom - Mesa {selectedTable.number}
+                Atribuir Garçons - Mesa {selectedTable.number}
               </h2>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Garçom
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Selecione os Garçons
                   </label>
-                  <select
-                    value={selectedWaiterId}
-                    onChange={(e) => setSelectedWaiterId(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Nenhum garçom</option>
+                  <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-3">
                     {waiters.map(waiter => (
-                      <option key={waiter.id} value={waiter.id}>
-                        {waiter.name}
-                      </option>
+                      <label
+                        key={waiter.id}
+                        className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedWaiterIds.includes(waiter.id)}
+                          onChange={() => toggleWaiter(waiter.id)}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <span className="text-gray-900">{waiter.name}</span>
+                      </label>
                     ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Selecione o garçom responsável por esta mesa
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {selectedWaiterIds.length === 0
+                      ? 'Nenhum garçom selecionado'
+                      : `${selectedWaiterIds.length} garçom(ns) selecionado(s)`}
                   </p>
                 </div>
               </div>
@@ -292,10 +321,10 @@ export default function TablesPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={handleAssignWaiter}
+                  onClick={handleAssignWaiters}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
                 >
-                  Atribuir
+                  Salvar
                 </button>
               </div>
             </div>

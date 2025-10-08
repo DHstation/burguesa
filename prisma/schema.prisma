@@ -52,10 +52,11 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relacionamentos
-  tables    Table[]
-  orders    Order[]
-  sessions  TableSession[]
-  logs      ActivityLog[]
+  tables        Table[]
+  orders        Order[]
+  sessions      TableSession[]
+  logs          ActivityLog[]
+  tableWaiters  TableWaiter[]
 
   @@map("users")
 }
@@ -81,8 +82,22 @@ model Table {
   waiter          User?       @relation(fields: [waiterId], references: [id], onDelete: SetNull)
   orders          Order[]
   sessions        TableSession[]
+  tableWaiters    TableWaiter[]
 
   @@map("tables")
+}
+
+// RelacionamentoMany-to-Many entre Mesas e Garçons
+model TableWaiter {
+  id          String   @id @default(cuid())
+  tableId     String
+  table       Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  waiterId    String
+  waiter      User     @relation(fields: [waiterId], references: [id], onDelete: Cascade)
+  assignedAt  DateTime @default(now())
+
+  @@unique([tableId, waiterId])
+  @@map("table_waiters")
 }
 
 // Histórico de sessões das mesas
