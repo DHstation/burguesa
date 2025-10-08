@@ -157,6 +157,11 @@ export async function POST(request: NextRequest) {
         },
       })
 
+      // Buscar mesa para verificar se já tem garçom principal
+      const table = await prisma.table.findUnique({
+        where: { id: tableId },
+      })
+
       // Atualiza o total da mesa e atribui garçom automaticamente
       await prisma.table.update({
         where: { id: tableId },
@@ -165,8 +170,23 @@ export async function POST(request: NextRequest) {
             increment: finalTotal,
           },
           status: 'ATTENDING',
-          waiterId: user.userId, // Atribui garçom automaticamente ao criar pedido
+          waiterId: table?.waiterId || user.userId, // Atribui garçom principal se ainda não tiver
         },
+      })
+
+      // Adiciona garçom à lista de garçons da mesa (se ainda não estiver)
+      await prisma.tableWaiter.upsert({
+        where: {
+          tableId_waiterId: {
+            tableId,
+            waiterId: user.userId,
+          },
+        },
+        create: {
+          tableId,
+          waiterId: user.userId,
+        },
+        update: {}, // Não faz nada se já existir
       })
 
       // Registra log
