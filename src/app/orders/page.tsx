@@ -410,6 +410,28 @@ export default function OrdersPage() {
     }
   }
 
+  const handlePrintOrder = async (orderId: string) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}/print`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (response.ok) {
+        await fetchOrders()
+        alert('Pedido impresso com sucesso!')
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Erro ao imprimir pedido')
+      }
+    } catch (error) {
+      console.error('Erro ao imprimir pedido:', error)
+      alert('Erro ao imprimir pedido')
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -623,6 +645,13 @@ export default function OrdersPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <div className="flex gap-3 items-center">
+                          <button
+                            onClick={() => handlePrintOrder(order.id)}
+                            className="text-green-600 hover:text-green-800 font-medium"
+                            title="Imprimir pedido"
+                          >
+                            🖨️ Imprimir
+                          </button>
                           <button
                             onClick={() => handleOpenModal(order)}
                             className="text-blue-600 hover:text-blue-800"

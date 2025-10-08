@@ -1,8 +1,15 @@
 # Dockerfile para Sistema Burguesa
-FROM node:20-alpine AS base
+FROM node:20-slim AS base
 
 # Instalar dependências necessárias para Prisma e USB
-RUN apk add --no-cache libc6-compat openssl libusb-dev eudev-dev
+RUN apt-get update && apt-get install -y \
+    openssl \
+    libusb-1.0-0 \
+    libusb-1.0-0-dev \
+    libudev-dev \
+    build-essential \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -12,6 +19,9 @@ COPY package.json package-lock.json* ./
 # Instalar dependências
 FROM base AS deps
 RUN npm ci
+
+# Rebuild módulo USB nativo
+RUN npm rebuild usb --build-from-source
 
 # Build da aplicação
 FROM base AS builder
@@ -33,8 +43,8 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Criar usuário não-root
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN groupadd --system --gid 1001 nodejs
+RUN useradd --system --uid 1001 -g nodejs nextjs
 
 # Copiar arquivos necessários
 COPY --from=builder /app/public ./public

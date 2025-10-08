@@ -91,8 +91,8 @@ export default function PrintersPage() {
       setEditingPrinter(null)
       setName('')
       setType('kitchen')
-      setVendorId('0x0483')
-      setProductId('0x5743')
+      setVendorId('0x6868')
+      setProductId('0x0200')
       setPaperWidth('58')
       setBaudRate('9600')
     }
@@ -104,8 +104,8 @@ export default function PrintersPage() {
     setEditingPrinter(null)
     setName('')
     setType('kitchen')
-    setVendorId('0x0483')
-    setProductId('0x5743')
+    setVendorId('0x6868')
+    setProductId('0x0200')
     setPaperWidth('58')
     setBaudRate('9600')
   }
@@ -443,7 +443,7 @@ export default function PrintersPage() {
                       {vendorId}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      Valor fixo para Knup KP-IM607: <strong>0x0483</strong>
+                      Valor padrão para Knup KP-IM607: <strong>0x6868</strong>
                     </p>
                   </div>
 
@@ -456,7 +456,7 @@ export default function PrintersPage() {
                       {productId}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      Valor fixo para Knup KP-IM607: <strong>0x5743</strong>
+                      Valor padrão para Knup KP-IM607: <strong>0x0200</strong>
                     </p>
                   </div>
 
