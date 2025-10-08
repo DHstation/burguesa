@@ -7,21 +7,13 @@ import TableCard from '@/components/TableCard'
 import Calculator from '@/components/Calculator'
 import { Table } from '@/types'
 
-interface Waiter {
-  id: string
-  name: string
-}
-
 export default function TablesPage() {
   const router = useRouter()
   const { user, token, isAuthenticated } = useAuthStore()
   const [tables, setTables] = useState<Table[]>([])
   const [loading, setLoading] = useState(true)
-  const [waiters, setWaiters] = useState<Waiter[]>([])
-  const [showWaiterModal, setShowWaiterModal] = useState(false)
-  const [selectedTable, setSelectedTable] = useState<Table | null>(null)
-  const [selectedWaiterIds, setSelectedWaiterIds] = useState<string[]>([])
-
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
+  const [selectedTableHistory, setSelectedTableHistory] = useState<Table | null>(null)
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login')
@@ -29,7 +21,6 @@ export default function TablesPage() {
     }
 
     fetchTables()
-    fetchWaiters()
   }, [isAuthenticated, router])
 
   const fetchTables = async () => {
@@ -56,81 +47,6 @@ export default function TablesPage() {
     }
   }
 
-  const fetchWaiters = async () => {
-    try {
-      const response = await fetch('/api/waiters', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setWaiters(data.data || [])
-      }
-    } catch (error) {
-      console.error('Erro ao buscar garçons:', error)
-    }
-  }
-
-  const handleOpenWaiterModal = (table: Table) => {
-    setSelectedTable(table)
-    // Pegar IDs dos garçons já atribuídos
-    const currentWaiterIds = (table as any).tableWaiters?.map((tw: any) => tw.waiterId) || []
-    setSelectedWaiterIds(currentWaiterIds)
-    setShowWaiterModal(true)
-  }
-
-  const handleCloseWaiterModal = () => {
-    setShowWaiterModal(false)
-    setSelectedTable(null)
-    setSelectedWaiterIds([])
-  }
-
-  const toggleWaiter = (waiterId: string) => {
-    setSelectedWaiterIds(prev => {
-      if (prev.includes(waiterId)) {
-        return prev.filter(id => id !== waiterId)
-      } else {
-        return [...prev, waiterId]
-      }
-    })
-  }
-
-  const handleAssignWaiters = async () => {
-    if (!selectedTable) return
-
-    console.log('🔍 Atribuindo garçons:', selectedWaiterIds)
-
-    try {
-      const response = await fetch(`/api/tables/${selectedTable.id}/waiters`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          waiterIds: selectedWaiterIds
-        })
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        console.log('✅ Resposta da API:', data)
-        console.log('📊 TableWaiters retornados:', data.data?.tableWaiters)
-
-        await fetchTables()
-        handleCloseWaiterModal()
-        alert(`${selectedWaiterIds.length} garçom(ns) atribuído(s) com sucesso!`)
-      } else {
-        const data = await response.json()
-        alert(data.error || 'Erro ao atribuir garçons')
-      }
-    } catch (error) {
-      console.error('Erro ao atribuir garçons:', error)
-      alert('Erro ao atribuir garçons')
-    }
-  }
 
   const handleCreateTable = async () => {
     const tableNumber = prompt('Número da nova mesa:')
@@ -156,6 +72,16 @@ export default function TablesPage() {
       console.error('Erro ao criar mesa:', error)
       alert('Erro ao criar mesa')
     }
+  }
+
+  const handleOpenHistory = (table: Table) => {
+    setSelectedTableHistory(table)
+    setShowHistoryModal(true)
+  }
+
+  const handleCloseHistory = () => {
+    setShowHistoryModal(false)
+    setSelectedTableHistory(null)
   }
 
   const handlePrintTable = async (tableId: string) => {
@@ -338,15 +264,16 @@ export default function TablesPage() {
                     />
                     {user?.role === 'RECEPTIONIST' && (
                       <>
+                        {/* Botão de histórico no canto superior direito */}
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleOpenWaiterModal(table)
+                            handleOpenHistory(table)
                           }}
                           className="absolute top-2 right-2 bg-white hover:bg-gray-100 text-gray-700 p-2 rounded-lg shadow-md transition z-10"
-                          title="Atribuir garçom"
+                          title="Ver histórico de pedidos"
                         >
-                          👤
+                          📋
                         </button>
 
                         {/* Botões de impressão e finalização */}
@@ -387,60 +314,113 @@ export default function TablesPage() {
         )}
       </main>
 
-      {/* Modal de Atribuir Garçons */}
-      {showWaiterModal && selectedTable && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                Atribuir Garçons - Mesa {selectedTable.number}
-              </h2>
+      {/* Modal de Histórico */}
+      {showHistoryModal && selectedTableHistory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  📋 Histórico - Mesa {selectedTableHistory.number}
+                </h2>
+                <button
+                  onClick={handleCloseHistory}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Total atual: R$ {selectedTableHistory.currentTotal.toFixed(2)}
+              </p>
+            </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Selecione os Garçons
-                  </label>
-                  <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-3">
-                    {waiters.map(waiter => (
-                      <label
-                        key={waiter.id}
-                        className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedWaiterIds.includes(waiter.id)}
-                          onChange={() => toggleWaiter(waiter.id)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <span className="text-gray-900">{waiter.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    {selectedWaiterIds.length === 0
-                      ? 'Nenhum garçom selecionado'
-                      : `${selectedWaiterIds.length} garçom(ns) selecionado(s)`}
-                  </p>
+            <div className="flex-1 overflow-y-auto p-6">
+              {selectedTableHistory.orders && selectedTableHistory.orders.length > 0 ? (
+                <div className="space-y-4">
+                  {selectedTableHistory.orders.map((order: any) => (
+                    <div key={order.id} className="border rounded-lg p-4 bg-gray-50">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <p className="font-semibold text-gray-900">
+                            Pedido #{order.id.slice(-8)}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {new Date(order.createdAt).toLocaleString('pt-BR')}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Garçom: {order.waiter?.name || 'N/A'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                            order.status === 'PREPARING' ? 'bg-blue-100 text-blue-800' :
+                            order.status === 'READY' ? 'bg-green-100 text-green-800' :
+                            order.status === 'DELIVERED' ? 'bg-gray-100 text-gray-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {order.status === 'PENDING' ? 'Pendente' :
+                             order.status === 'PREPARING' ? 'Preparando' :
+                             order.status === 'READY' ? 'Pronto' :
+                             order.status === 'DELIVERED' ? 'Entregue' :
+                             'Cancelado'}
+                          </span>
+                          <p className="text-lg font-bold text-gray-900 mt-2">
+                            R$ {order.finalTotal.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="border-t pt-3 mt-3">
+                        <p className="text-sm font-semibold text-gray-700 mb-2">Itens:</p>
+                        <div className="space-y-2">
+                          {order.items?.map((item: any) => (
+                            <div key={item.id} className="flex justify-between text-sm">
+                              <span className={item.cancelled ? 'line-through text-gray-400' : 'text-gray-900'}>
+                                {item.quantity}x {item.product?.name || 'Produto'}
+                                {item.observations && (
+                                  <span className="text-gray-500 italic ml-2">
+                                    ({item.observations})
+                                  </span>
+                                )}
+                                {item.cancelled && (
+                                  <span className="text-red-500 ml-2">
+                                    [CANCELADO]
+                                  </span>
+                                )}
+                              </span>
+                              <span className={item.cancelled ? 'line-through text-gray-400' : 'text-gray-700'}>
+                                R$ {(item.price * item.quantity).toFixed(2)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        {order.serviceCharge > 0 && (
+                          <div className="flex justify-between text-sm text-gray-600 mt-2 pt-2 border-t">
+                            <span>Taxa de Serviço:</span>
+                            <span>R$ {order.serviceCharge.toFixed(2)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <p className="text-xl mb-2">📝</p>
+                  <p>Nenhum pedido encontrado para esta mesa</p>
+                </div>
+              )}
+            </div>
 
-              <div className="flex gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={handleCloseWaiterModal}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAssignWaiters}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
-                >
-                  Salvar
-                </button>
-              </div>
+            <div className="p-6 border-t bg-gray-50">
+              <button
+                onClick={handleCloseHistory}
+                className="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg transition"
+              >
+                Fechar
+              </button>
             </div>
           </div>
         </div>
