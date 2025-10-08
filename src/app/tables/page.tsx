@@ -7,11 +7,20 @@ import TableCard from '@/components/TableCard'
 import Calculator from '@/components/Calculator'
 import { Table } from '@/types'
 
+interface Waiter {
+  id: string
+  name: string
+}
+
 export default function TablesPage() {
   const router = useRouter()
   const { user, token, isAuthenticated } = useAuthStore()
   const [tables, setTables] = useState<Table[]>([])
   const [loading, setLoading] = useState(true)
+  const [waiters, setWaiters] = useState<Waiter[]>([])
+  const [showWaiterModal, setShowWaiterModal] = useState(false)
+  const [selectedTable, setSelectedTable] = useState<Table | null>(null)
+  const [selectedWaiterId, setSelectedWaiterId] = useState<string>('')
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -20,6 +29,7 @@ export default function TablesPage() {
     }
 
     fetchTables()
+    fetchWaiters()
   }, [isAuthenticated, router])
 
   const fetchTables = async () => {
@@ -38,6 +48,64 @@ export default function TablesPage() {
       console.error('Erro ao buscar mesas:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchWaiters = async () => {
+    try {
+      const response = await fetch('/api/waiters', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setWaiters(data.data || [])
+      }
+    } catch (error) {
+      console.error('Erro ao buscar garçons:', error)
+    }
+  }
+
+  const handleOpenWaiterModal = (table: Table) => {
+    setSelectedTable(table)
+    setSelectedWaiterId(table.waiter?.id || '')
+    setShowWaiterModal(true)
+  }
+
+  const handleCloseWaiterModal = () => {
+    setShowWaiterModal(false)
+    setSelectedTable(null)
+    setSelectedWaiterId('')
+  }
+
+  const handleAssignWaiter = async () => {
+    if (!selectedTable) return
+
+    try {
+      const response = await fetch(`/api/tables/${selectedTable.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          waiterId: selectedWaiterId || null
+        })
+      })
+
+      if (response.ok) {
+        await fetchTables()
+        handleCloseWaiterModal()
+        alert('Garçom atribuído com sucesso!')
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Erro ao atribuir garçom')
+      }
+    } catch (error) {
+      console.error('Erro ao atribuir garçom:', error)
+      alert('Erro ao atribuir garçom')
     }
   }
 
@@ -154,20 +222,86 @@ export default function TablesPage() {
             {/* Grid de Mesas */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {tables.map((table) => (
-                <TableCard
-                  key={table.id}
-                  table={table}
-                  onClick={() => {
-                    // TODO: Abrir modal com detalhes da mesa
-                    alert(`Mesa ${table.number} - Status: ${table.status}`)
-                  }}
-                  canMerge={false} // Drag & drop virá depois
-                />
+                <div key={table.id} className="relative">
+                  <TableCard
+                    table={table}
+                    onClick={() => {
+                      // TODO: Abrir modal com detalhes da mesa
+                      alert(`Mesa ${table.number} - Status: ${table.status}`)
+                    }}
+                    canMerge={false} // Drag & drop virá depois
+                  />
+                  {user?.role === 'RECEPTIONIST' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleOpenWaiterModal(table)
+                      }}
+                      className="absolute top-2 right-2 bg-white hover:bg-gray-100 text-gray-700 p-2 rounded-lg shadow-md transition z-10"
+                      title="Atribuir garçom"
+                    >
+                      👤
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           </>
         )}
       </main>
+
+      {/* Modal de Atribuir Garçom */}
+      {showWaiterModal && selectedTable && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Atribuir Garçom - Mesa {selectedTable.number}
+              </h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Garçom
+                  </label>
+                  <select
+                    value={selectedWaiterId}
+                    onChange={(e) => setSelectedWaiterId(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Nenhum garçom</option>
+                    {waiters.map(waiter => (
+                      <option key={waiter.id} value={waiter.id}>
+                        {waiter.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Selecione o garçom responsável por esta mesa
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={handleCloseWaiterModal}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAssignWaiter}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
+                >
+                  Atribuir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Calculadora Flutuante */}
       <Calculator />

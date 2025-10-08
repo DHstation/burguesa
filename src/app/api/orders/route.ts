@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      // Atualiza o total da mesa
+      // Atualiza o total da mesa e atribui garçom automaticamente
       await prisma.table.update({
         where: { id: tableId },
         data: {
@@ -165,6 +165,7 @@ export async function POST(request: NextRequest) {
             increment: finalTotal,
           },
           status: 'ATTENDING',
+          waiterId: user.userId, // Atribui garçom automaticamente ao criar pedido
         },
       })
 

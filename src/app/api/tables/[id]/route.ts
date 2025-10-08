@@ -47,6 +47,46 @@ export async function GET(
   })(request)
 }
 
+// PUT - Atualiza mesa (incluindo atribuição de garçom)
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return requireAuth(async (req: NextRequest, user: any) => {
+    const { id } = await params
+    try {
+      const data = await req.json()
+
+      // Apenas recepcionistas podem atribuir garçons
+      if (data.waiterId !== undefined && user.role !== 'RECEPTIONIST') {
+        return NextResponse.json(
+          { error: 'Apenas recepcionistas podem atribuir garçons' },
+          { status: 403 }
+        )
+      }
+
+      const table = await prisma.table.update({
+        where: { id: id },
+        data: {
+          waiterId: data.waiterId === '' ? null : data.waiterId,
+        },
+        include: {
+          waiter: true,
+          orders: true,
+        },
+      })
+
+      return NextResponse.json({ success: true, data: table })
+    } catch (error) {
+      console.error('Erro ao atualizar mesa:', error)
+      return NextResponse.json(
+        { error: 'Erro ao atualizar mesa' },
+        { status: 500 }
+      )
+    }
+  })(request)
+}
+
 // PATCH - Atualiza mesa
 export async function PATCH(
   request: NextRequest,
