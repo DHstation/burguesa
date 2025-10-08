@@ -300,7 +300,7 @@ export default function TablesPage() {
                 })
 
                 return (
-                  <div key={table.id} className="relative">
+                  <div key={table.id} className="relative pb-12">
                     <TableCard
                       table={table}
                       onClick={() => {
@@ -335,9 +335,9 @@ export default function TablesPage() {
                           📋
                         </button>
 
-                        {/* Botões de impressão e finalização */}
+                        {/* Botões de impressão e finalização - sempre no fundo do container */}
                         {shouldShowButtons && (
-                          <div className="absolute bottom-2 left-2 right-2 flex gap-2 z-10">
+                          <div className="absolute bottom-0 left-2 right-2 flex gap-2 z-10">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
