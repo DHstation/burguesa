@@ -37,7 +37,7 @@ interface Order {
 
 export default function HistoryPage() {
   const router = useRouter()
-  const { user, token, isAuthenticated } = useAuthStore()
+  const { user, token, isAuthenticated, isHydrated } = useAuthStore()
   const [orders, setOrders] = useState<Order[]>([])
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
@@ -57,19 +57,25 @@ export default function HistoryPage() {
   })
 
   useEffect(() => {
+    // Aguardar hidratação do store antes de verificar autenticação
+    if (!isHydrated) {
+      return
+    }
+
     if (!isAuthenticated) {
       router.push('/login')
       return
     }
 
-    if (user?.role !== 'RECEPTIONIST') {
-      router.push('/dashboard')
+    // Apenas DRINKS não pode acessar
+    if (user && user.role === 'DRINKS') {
+      router.push('/drinks')
       return
     }
 
     fetchOrders()
     fetchWaiters()
-  }, [isAuthenticated, user, router])
+  }, [isAuthenticated, isHydrated])
 
   useEffect(() => {
     applyFilters()
@@ -88,7 +94,7 @@ export default function HistoryPage() {
         setOrders(data.data || [])
       }
     } catch (error) {
-      console.error('Erro ao buscar histórico:', error)
+      // Erro ao buscar histórico
     } finally {
       setLoading(false)
     }
@@ -107,7 +113,7 @@ export default function HistoryPage() {
         setWaiters(data.data || [])
       }
     } catch (error) {
-      console.error('Erro ao buscar garçons:', error)
+      // Erro ao buscar garçons
     }
   }
 

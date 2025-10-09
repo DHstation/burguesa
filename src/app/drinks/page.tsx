@@ -32,21 +32,25 @@ interface Order {
 
 export default function DrinksPage() {
   const router = useRouter()
-  const { user, token, isAuthenticated } = useAuthStore()
+  const { user, token, isAuthenticated, isHydrated } = useAuthStore()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const previousPendingOrdersRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
+    // Aguardar hidratação do store antes de verificar autenticação
+    if (!isHydrated) {
+      return
+    }
+
     if (!isAuthenticated) {
       router.push('/login')
       return
     }
 
-    // Verificar se o usuário tem permissão (DRINKS ou RECEPTIONIST)
-    if (user && user.role !== 'DRINKS' && user.role !== 'RECEPTIONIST') {
-      alert('Acesso negado. Apenas operadores de drinks podem acessar esta página.')
+    // Verificar se o usuário tem permissão (apenas DRINKS)
+    if (user && user.role !== 'DRINKS') {
       router.push('/dashboard')
       return
     }
@@ -60,7 +64,7 @@ export default function DrinksPage() {
     // Atualizar a cada 5 segundos
     const interval = setInterval(fetchOrders, 5000)
     return () => clearInterval(interval)
-  }, [isAuthenticated, user, router])
+  }, [isAuthenticated, isHydrated])
 
   const fetchOrders = async () => {
     try {
@@ -81,6 +85,13 @@ export default function DrinksPage() {
             .map((order: Order) => order.id)
         )
 
+        // Se é a primeira verificação, apenas inicializar sem notificar
+        if (previousPendingOrdersRef.current.size === 0 && currentPendingOrders.size > 0) {
+          previousPendingOrdersRef.current = currentPendingOrders
+          setOrders(newOrders)
+          return
+        }
+
         // Detectar novos pedidos que acabaram de chegar
         const newPendingOrders = Array.from(currentPendingOrders).filter(
           (id: string) => !previousPendingOrdersRef.current.has(id)
@@ -98,7 +109,6 @@ export default function DrinksPage() {
         setOrders(newOrders)
       }
     } catch (error) {
-      console.error('Erro ao buscar pedidos:', error)
     } finally {
       setLoading(false)
     }
@@ -107,7 +117,6 @@ export default function DrinksPage() {
   const playNotificationSound = () => {
     if (audioRef.current) {
       audioRef.current.play().catch(err => {
-        console.error('Erro ao tocar notificação:', err)
         // Fallback: usar Web Audio API para gerar beep
         playBeep()
       })
@@ -134,7 +143,6 @@ export default function DrinksPage() {
       oscillator.start(audioContext.currentTime)
       oscillator.stop(audioContext.currentTime + 3) // 3 segundos
     } catch (error) {
-      console.error('Erro ao gerar beep:', error)
     }
   }
 
@@ -183,7 +191,6 @@ export default function DrinksPage() {
         alert(data.error || 'Erro ao atualizar status')
       }
     } catch (error) {
-      console.error('Erro ao atualizar status:', error)
       alert('Erro ao atualizar status')
     }
   }

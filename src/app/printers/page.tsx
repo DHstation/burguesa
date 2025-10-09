@@ -25,7 +25,7 @@ const typeLabels: Record<string, string> = {
 
 export default function PrintersPage() {
   const router = useRouter()
-  const { token, user } = useAuthStore()
+  const { token, user, isAuthenticated, isHydrated } = useAuthStore()
   const [printers, setPrinters] = useState<PrinterConfig[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -42,18 +42,24 @@ export default function PrintersPage() {
   const [baudRate, setBaudRate] = useState('9600')
 
   useEffect(() => {
-    if (!token) {
+    // Aguardar hidratação do store antes de verificar autenticação
+    if (!isHydrated) {
+      return
+    }
+
+    if (!isAuthenticated) {
       router.push('/login')
       return
     }
 
-    if (user?.role !== 'RECEPTIONIST') {
-      router.push('/dashboard')
+    // Apenas DRINKS não pode acessar
+    if (user && user.role === 'DRINKS') {
+      router.push('/drinks')
       return
     }
 
     fetchPrinters()
-  }, [token, user, router])
+  }, [isAuthenticated, isHydrated])
 
   const fetchPrinters = async () => {
     try {
@@ -69,10 +75,10 @@ export default function PrintersPage() {
         const printersData = result.data || result
         setPrinters(Array.isArray(printersData) ? printersData : [])
       } else {
-        console.error('Erro ao carregar impressoras')
+        // Erro ao carregar impressoras
       }
     } catch (error) {
-      console.error('Erro ao carregar impressoras:', error)
+      // Erro ao carregar impressoras
     } finally {
       setLoading(false)
     }
@@ -154,7 +160,7 @@ export default function PrintersPage() {
         alert(error.error || 'Erro ao salvar impressora')
       }
     } catch (error) {
-      console.error('Erro ao salvar impressora:', error)
+      // Erro ao salvar impressora
       alert('Erro ao salvar impressora')
     } finally {
       setSubmitting(false)
@@ -181,7 +187,7 @@ export default function PrintersPage() {
         alert(error.error || 'Erro ao deletar impressora')
       }
     } catch (error) {
-      console.error('Erro ao deletar impressora:', error)
+      // Erro ao deletar impressora
       alert('Erro ao deletar impressora')
     }
   }
@@ -211,7 +217,7 @@ export default function PrintersPage() {
         alert(`❌ Erro: ${result.error || result.message || 'Erro ao testar conexão'}`)
       }
     } catch (error) {
-      console.error('Erro ao testar conexão:', error)
+      // Erro ao testar conexão
       alert('❌ Erro ao testar conexão. Verifique o console para mais detalhes.')
     } finally {
       setTesting(null)
@@ -247,7 +253,7 @@ export default function PrintersPage() {
         await fetchPrinters()
       }
     } catch (error) {
-      console.error('Erro ao desconectar impressora:', error)
+      // Erro ao desconectar impressora
     }
   }
 

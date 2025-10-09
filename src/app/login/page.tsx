@@ -38,8 +38,18 @@ export default function LoginPage() {
       // Salva no store
       login(data.user, data.token)
 
-      // Redireciona
-      router.push('/dashboard')
+      // Redireciona baseado no tipo de usuário
+      const userRole = data.user.role
+
+      switch (userRole) {
+        case 'DRINKS':
+          router.push('/drinks')
+          break
+        case 'RECEPTIONIST':
+        case 'WAITER':
+        default:
+          router.push('/dashboard')
+      }
     } catch (err) {
       setError('Erro de conexão. Tente novamente.')
       setLoading(false)
@@ -127,22 +137,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Credenciais de Teste */}
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <p className="text-sm text-gray-600 text-center mb-4">Credenciais de Teste:</p>
-          <div className="space-y-2 text-xs text-gray-600">
-            <div className="bg-gray-50 p-3 rounded">
-              <strong>Recepcionista:</strong>
-              <br />
-              admin@burguesa.com / admin123
-            </div>
-            <div className="bg-gray-50 p-3 rounded">
-              <strong>Garçom:</strong>
-              <br />
-              joao@burguesa.com / garcom123
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )

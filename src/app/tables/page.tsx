@@ -9,19 +9,30 @@ import { Table } from '@/types'
 
 export default function TablesPage() {
   const router = useRouter()
-  const { user, token, isAuthenticated } = useAuthStore()
+  const { user, token, isAuthenticated, isHydrated } = useAuthStore()
   const [tables, setTables] = useState<Table[]>([])
   const [loading, setLoading] = useState(true)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [selectedTableHistory, setSelectedTableHistory] = useState<Table | null>(null)
   useEffect(() => {
+    // Aguardar hidratação do store antes de verificar autenticação
+    if (!isHydrated) {
+      return
+    }
+
     if (!isAuthenticated) {
       router.push('/login')
       return
     }
 
+    // Apenas DRINKS não pode acessar (redireciona para sua estação)
+    if (user && user.role === 'DRINKS') {
+      router.push('/drinks')
+      return
+    }
+
     fetchTables()
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, isHydrated])
 
   const fetchTables = async () => {
     try {
@@ -33,15 +44,10 @@ export default function TablesPage() {
 
       if (response.ok) {
         const data = await response.json()
-        console.log('📋 Mesas recebidas:', data.data)
-        // Log da primeira mesa para debug
-        if (data.data && data.data.length > 0) {
-          console.log('🔍 Primeira mesa tableWaiters:', data.data[0].tableWaiters)
-        }
         setTables(data.data || [])
       }
     } catch (error) {
-      console.error('Erro ao buscar mesas:', error)
+      // Erro ao buscar mesas
     } finally {
       setLoading(false)
     }
@@ -69,7 +75,7 @@ export default function TablesPage() {
         alert(data.error || 'Erro ao criar mesa')
       }
     } catch (error) {
-      console.error('Erro ao criar mesa:', error)
+      // Erro ao criar mesa
       alert('Erro ao criar mesa')
     }
   }
@@ -100,7 +106,7 @@ export default function TablesPage() {
         alert(data.error || 'Erro ao imprimir resumo')
       }
     } catch (error) {
-      console.error('Erro ao imprimir resumo:', error)
+      // Erro ao imprimir resumo
       alert('Erro ao imprimir resumo')
     }
   }
@@ -147,7 +153,7 @@ export default function TablesPage() {
         alert(`Mesa ${tableNumber} finalizada, mas houve erro ao imprimir. Você pode imprimir manualmente.`)
       }
     } catch (error) {
-      console.error('Erro ao finalizar mesa:', error)
+      // Erro ao finalizar mesa
       alert('Erro ao finalizar mesa')
     }
   }
@@ -194,7 +200,7 @@ export default function TablesPage() {
         alert(data.error || 'Erro ao excluir mesa')
       }
     } catch (error) {
-      console.error('Erro ao excluir mesa:', error)
+      // Erro ao excluir mesa
       alert('Erro ao excluir mesa')
     }
   }
@@ -229,7 +235,7 @@ export default function TablesPage() {
         alert(data.error || 'Erro ao esvaziar mesa')
       }
     } catch (error) {
-      console.error('Erro ao esvaziar mesa:', error)
+      // Erro ao esvaziar mesa
       alert('Erro ao esvaziar mesa')
     }
   }
@@ -321,18 +327,8 @@ export default function TablesPage() {
             {/* Grid de Mesas */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {tables.map((table) => {
-                // Debug para ver se os botões devem aparecer
-                const isReceptionist = user?.role === 'RECEPTIONIST'
-                const hasValidStatus = table.status === 'ATTENDING' || table.status === 'FINISHED'
-                // Removido validação de total > 0 para permitir finalizar mesas com qualquer valor
-                const shouldShowButtons = isReceptionist && hasValidStatus
-
-                console.log(`Mesa ${table.number}:`, {
-                  status: table.status,
-                  total: table.currentTotal,
-                  role: user?.role,
-                  shouldShowButtons
-                })
+                const shouldShowButtons = user?.role === 'RECEPTIONIST' &&
+                  (table.status === 'ATTENDING' || table.status === 'FINISHED')
 
                 return (
                   <div key={table.id} className="relative pb-12">

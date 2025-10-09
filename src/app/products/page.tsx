@@ -18,7 +18,7 @@ const categoryLabels: Record<ProductCategory, string> = {
 
 export default function ProductsPage() {
   const router = useRouter()
-  const { user, token, isAuthenticated } = useAuthStore()
+  const { user, token, isAuthenticated, isHydrated } = useAuthStore()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory | 'ALL'>('ALL')
@@ -39,13 +39,24 @@ export default function ProductsPage() {
   const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
+    // Aguardar hidratação do store antes de verificar autenticação
+    if (!isHydrated) {
+      return
+    }
+
     if (!isAuthenticated) {
       router.push('/login')
       return
     }
 
+    // Apenas DRINKS não pode acessar (redireciona para sua estação)
+    if (user && user.role === 'DRINKS') {
+      router.push('/drinks')
+      return
+    }
+
     fetchProducts()
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, isHydrated])
 
   const fetchProducts = async () => {
     try {
@@ -60,7 +71,7 @@ export default function ProductsPage() {
         setProducts(data.data || [])
       }
     } catch (error) {
-      console.error('Erro ao buscar produtos:', error)
+      // Erro ao buscar produtos
     } finally {
       setLoading(false)
     }
@@ -171,7 +182,7 @@ export default function ProductsPage() {
         alert(data.error || 'Erro ao salvar produto')
       }
     } catch (error) {
-      console.error('Erro ao salvar produto:', error)
+      // Erro ao salvar produto
       alert('Erro ao salvar produto')
     } finally {
       setUploading(false)
@@ -196,7 +207,7 @@ export default function ProductsPage() {
         alert(data.error || 'Erro ao excluir produto')
       }
     } catch (error) {
-      console.error('Erro ao excluir produto:', error)
+      // Erro ao excluir produto
       alert('Erro ao excluir produto')
     }
   }

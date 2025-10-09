@@ -17,21 +17,28 @@ interface DashboardStats {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, token, isAuthenticated, logout } = useAuthStore()
+  const { user, token, isAuthenticated, isHydrated, logout } = useAuthStore()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Aguardar hidratação do store antes de verificar autenticação
+    if (!isHydrated) {
+      return
+    }
+
     if (!isAuthenticated) {
       router.push('/login')
       return
     }
 
-    // Redirecionar usuários DRINKS direto para a drinks station
+    // Redirecionar usuários DRINKS para sua estação
     if (user && user.role === 'DRINKS') {
       router.push('/drinks')
       return
     }
+
+    // RECEPTIONIST e WAITER podem acessar o dashboard
 
     // Buscar stats reais da API
     const fetchStats = async () => {
@@ -58,7 +65,6 @@ export default function DashboardPage() {
           })
         }
       } catch (error) {
-        console.error('Erro ao buscar stats:', error)
         // Em caso de erro, mostra zeros
         setStats({
           totalTables: 0,
@@ -75,7 +81,7 @@ export default function DashboardPage() {
     }
 
     fetchStats()
-  }, [isAuthenticated, router, token])
+  }, [isAuthenticated, isHydrated])
 
   const handleLogout = () => {
     logout()

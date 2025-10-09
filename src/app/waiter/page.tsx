@@ -7,14 +7,26 @@ import { Table } from '@/types'
 
 export default function WaiterPage() {
   const router = useRouter()
-  const { user, token, isAuthenticated } = useAuthStore()
+  const { user, token, isAuthenticated, isHydrated } = useAuthStore()
   const [myTables, setMyTables] = useState<Table[]>([])
   const [loading, setLoading] = useState(true)
+  const [readyDrinksAlert, setReadyDrinksAlert] = useState<any[]>([])
   const previousReadyDrinksRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
+    // Aguardar hidratação do store antes de verificar autenticação
+    if (!isHydrated) {
+      return
+    }
+
     if (!isAuthenticated) {
       router.push('/login')
+      return
+    }
+
+    // Verificar se o usuário é garçom
+    if (user && user.role !== 'WAITER') {
+      router.push('/dashboard')
       return
     }
 
@@ -33,7 +45,7 @@ export default function WaiterPage() {
       clearInterval(tablesInterval)
       clearInterval(drinksInterval)
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, isHydrated])
 
   const requestNotificationPermission = async () => {
     if ('Notification' in window && Notification.permission === 'default') {
@@ -56,23 +68,46 @@ export default function WaiterPage() {
         // Criar set com IDs dos pedidos prontos atuais
         const currentReadyIds = new Set<string>(readyOrders.map((order: any) => order.id))
 
+        // Se é a primeira verificação, apenas inicializar sem notificar
+        if (previousReadyDrinksRef.current.size === 0 && readyOrders.length > 0) {
+          previousReadyDrinksRef.current = currentReadyIds
+          return
+        }
+
         // Detectar novos pedidos prontos
         const newReadyOrders = readyOrders.filter((order: any) =>
           !previousReadyDrinksRef.current.has(order.id)
         )
 
         if (newReadyOrders.length > 0) {
+          // Adicionar ao estado de alertas na tela
+          setReadyDrinksAlert(newReadyOrders)
+
           // Notificar sobre cada pedido pronto
           newReadyOrders.forEach((order: any) => {
             showDrinkReadyNotification(order)
-            playNotificationSound()
           })
+
+          // Tocar som apenas uma vez
+          playNotificationSound()
+
+          // Vibrar dispositivo se suportado (mobile)
+          if ('vibrate' in navigator) {
+            navigator.vibrate([200, 100, 200, 100, 200])
+          }
+
+          // Remover alerta após 5 segundos
+          setTimeout(() => {
+            setReadyDrinksAlert([])
+          }, 5000)
         }
 
         previousReadyDrinksRef.current = currentReadyIds
+      } else {
+        // Erro ao buscar drinks
       }
     } catch (error) {
-      console.error('Erro ao verificar drinks prontos:', error)
+      // Erro ao verificar drinks prontos
     }
   }
 
@@ -81,7 +116,11 @@ export default function WaiterPage() {
       `${item.quantity}x ${item.product.name}`
     ).join(', ')
 
-    if ('Notification' in window && Notification.permission === 'granted') {
+    if (!('Notification' in window)) {
+      return
+    }
+
+    if (Notification.permission === 'granted') {
       const notification = new Notification('🍹 Bebida Pronta!', {
         body: `Mesa ${order.table.number}\n${itemsText}`,
         icon: '/icon.png',
@@ -90,9 +129,20 @@ export default function WaiterPage() {
         tag: `drink-${order.id}`
       })
 
+      notification.onclick = () => {
+        window.focus()
+        notification.close()
+      }
+
       setTimeout(() => {
         notification.close()
       }, 3000)
+    } else if (Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          showDrinkReadyNotification(order)
+        }
+      })
     }
   }
 
@@ -114,7 +164,7 @@ export default function WaiterPage() {
       oscillator.start(audioContext.currentTime)
       oscillator.stop(audioContext.currentTime + 3)
     } catch (error) {
-      console.error('Erro ao tocar notificação:', error)
+      // Erro ao tocar notificação
     }
   }
 
@@ -131,7 +181,7 @@ export default function WaiterPage() {
         setMyTables(data.data || [])
       }
     } catch (error) {
-      console.error('Erro ao buscar mesas:', error)
+      // Erro ao buscar mesas
     } finally {
       setLoading(false)
     }
@@ -154,7 +204,7 @@ export default function WaiterPage() {
         alert(data.error || 'Erro ao iniciar atendimento')
       }
     } catch (error) {
-      console.error('Erro ao iniciar mesa:', error)
+      // Erro ao iniciar mesa
       alert('Erro ao iniciar atendimento')
     }
   }
@@ -191,7 +241,7 @@ export default function WaiterPage() {
         alert(data.error || 'Erro ao esvaziar mesa')
       }
     } catch (error) {
-      console.error('Erro ao esvaziar mesa:', error)
+      // Erro ao esvaziar mesa
       alert('Erro ao esvaziar mesa')
     }
   }
@@ -253,6 +303,41 @@ export default function WaiterPage() {
           </div>
         </div>
       </header>
+
+      {/* Alerta de Bebidas Prontas - Mobile Optimized */}
+      {readyDrinksAlert.length > 0 && (
+        <div className="fixed top-20 left-0 right-0 z-50 px-4 animate-bounce">
+          <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl shadow-2xl p-6 mx-auto max-w-md border-4 border-white">
+            <div className="flex items-center gap-4 mb-3">
+              <div className="text-5xl animate-pulse">🍹</div>
+              <div className="flex-1">
+                <h3 className="text-2xl font-bold">Bebida Pronta!</h3>
+                <p className="text-green-100 text-sm">Retire na estação de drinks</p>
+              </div>
+              <button
+                onClick={() => setReadyDrinksAlert([])}
+                className="text-white hover:text-green-100 text-3xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            <div className="space-y-2">
+              {readyDrinksAlert.map((order: any) => (
+                <div key={order.id} className="bg-white bg-opacity-20 rounded-lg p-3">
+                  <div className="font-bold text-lg">Mesa {order.table.number}</div>
+                  <div className="text-sm">
+                    {order.items.map((item: any) => (
+                      <div key={item.id}>
+                        {item.quantity}x {item.product.name}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

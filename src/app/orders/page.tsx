@@ -75,7 +75,7 @@ const statusLabels: Record<OrderStatus, string> = {
 
 export default function OrdersPage() {
   const router = useRouter()
-  const { token, user } = useAuthStore()
+  const { token, user, isAuthenticated, isHydrated } = useAuthStore()
   const [orders, setOrders] = useState<Order[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [tables, setTables] = useState<Table[]>([])
@@ -102,15 +102,27 @@ export default function OrdersPage() {
   const [orderStatus, setOrderStatus] = useState<OrderStatus>('PENDING')
 
   useEffect(() => {
-    if (!token) {
+    // Aguardar hidratação do store antes de verificar autenticação
+    if (!isHydrated) {
+      return
+    }
+
+    if (!isAuthenticated) {
       router.push('/login')
       return
     }
+
+    // Apenas DRINKS não pode acessar
+    if (user && user.role === 'DRINKS') {
+      router.push('/drinks')
+      return
+    }
+
     fetchOrders()
     fetchProducts()
     fetchTables()
     fetchWaiters()
-  }, [token, router])
+  }, [isAuthenticated, isHydrated])
 
   useEffect(() => {
     fetchOrders()
@@ -138,10 +150,10 @@ export default function OrdersPage() {
         const data = await response.json()
         setOrders(data)
       } else {
-        console.error('Erro ao carregar pedidos')
+        // Erro ao carregar pedidos
       }
     } catch (error) {
-      console.error('Erro ao carregar pedidos:', error)
+      // Erro ao carregar pedidos
     } finally {
       setLoading(false)
     }
@@ -161,7 +173,7 @@ export default function OrdersPage() {
         setProducts(Array.isArray(productsData) ? productsData.filter((p: Product) => p.active) : [])
       }
     } catch (error) {
-      console.error('Erro ao carregar produtos:', error)
+      // Erro ao carregar produtos
     }
   }
 
@@ -179,7 +191,7 @@ export default function OrdersPage() {
         setTables(Array.isArray(tablesData) ? tablesData : [])
       }
     } catch (error) {
-      console.error('Erro ao carregar mesas:', error)
+      // Erro ao carregar mesas
     }
   }
 
@@ -197,7 +209,7 @@ export default function OrdersPage() {
         setWaiters(Array.isArray(waitersData) ? waitersData : [])
       }
     } catch (error) {
-      console.error('Erro ao carregar garçons:', error)
+      // Erro ao carregar garçons
     }
   }
 
@@ -309,7 +321,7 @@ export default function OrdersPage() {
         alert(error.error || 'Erro ao salvar pedido')
       }
     } catch (error) {
-      console.error('Erro ao salvar pedido:', error)
+      // Erro ao salvar pedido
       alert('Erro ao salvar pedido')
     } finally {
       setSubmitting(false)
@@ -338,7 +350,7 @@ export default function OrdersPage() {
         alert(error.error || 'Erro ao cancelar pedido')
       }
     } catch (error) {
-      console.error('Erro ao cancelar pedido:', error)
+      // Erro ao cancelar pedido
       alert('Erro ao cancelar pedido')
     }
   }
@@ -382,7 +394,7 @@ export default function OrdersPage() {
         alert(error.error || 'Erro ao excluir pedido')
       }
     } catch (error) {
-      console.error('Erro ao excluir pedido:', error)
+      // Erro ao excluir pedido
       alert('Erro ao excluir pedido')
     }
   }
@@ -405,7 +417,7 @@ export default function OrdersPage() {
         alert(error.error || 'Erro ao atualizar status')
       }
     } catch (error) {
-      console.error('Erro ao atualizar status:', error)
+      // Erro ao atualizar status
       alert('Erro ao atualizar status')
     }
   }
@@ -427,7 +439,7 @@ export default function OrdersPage() {
         alert(error.error || 'Erro ao imprimir pedido')
       }
     } catch (error) {
-      console.error('Erro ao imprimir pedido:', error)
+      // Erro ao imprimir pedido
       alert('Erro ao imprimir pedido')
     }
   }

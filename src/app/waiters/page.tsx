@@ -16,7 +16,7 @@ interface Waiter {
 
 export default function WaitersPage() {
   const router = useRouter()
-  const { user, token, isAuthenticated } = useAuthStore()
+  const { user, token, isAuthenticated, isHydrated } = useAuthStore()
   const [waiters, setWaiters] = useState<Waiter[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -31,18 +31,24 @@ export default function WaitersPage() {
   const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
+    // Aguardar hidratação do store antes de verificar autenticação
+    if (!isHydrated) {
+      return
+    }
+
     if (!isAuthenticated) {
       router.push('/login')
       return
     }
 
-    if (user?.role !== 'RECEPTIONIST') {
-      router.push('/dashboard')
+    // Apenas DRINKS não pode acessar
+    if (user && user.role === 'DRINKS') {
+      router.push('/drinks')
       return
     }
 
     fetchWaiters()
-  }, [isAuthenticated, user, router])
+  }, [isAuthenticated, isHydrated])
 
   const fetchWaiters = async () => {
     try {
@@ -57,7 +63,7 @@ export default function WaitersPage() {
         setWaiters(data.data || [])
       }
     } catch (error) {
-      console.error('Erro ao buscar garçons:', error)
+      // Erro ao buscar garçons
     } finally {
       setLoading(false)
     }
@@ -130,7 +136,7 @@ export default function WaitersPage() {
         alert(data.error || 'Erro ao salvar garçom')
       }
     } catch (error) {
-      console.error('Erro ao salvar garçom:', error)
+      // Erro ao salvar garçom
       alert('Erro ao salvar garçom')
     } finally {
       setSubmitting(false)
@@ -158,7 +164,7 @@ export default function WaitersPage() {
         alert(data.error || 'Erro ao excluir garçom')
       }
     } catch (error) {
-      console.error('Erro ao excluir garçom:', error)
+      // Erro ao excluir garçom
       alert('Erro ao excluir garçom')
     }
   }
@@ -185,7 +191,7 @@ export default function WaitersPage() {
         alert(data.error || 'Erro ao atualizar status')
       }
     } catch (error) {
-      console.error('Erro ao atualizar status:', error)
+      // Erro ao atualizar status
       alert('Erro ao atualizar status')
     }
   }
