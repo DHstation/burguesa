@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
 import { Table } from '@/types'
@@ -10,6 +10,7 @@ export default function WaiterPage() {
   const { user, token, isAuthenticated } = useAuthStore()
   const [myTables, setMyTables] = useState<Table[]>([])
   const [loading, setLoading] = useState(true)
+  const previousReadyDrinksRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -17,12 +18,105 @@ export default function WaiterPage() {
       return
     }
 
+    // Solicitar permissão para notificações
+    requestNotificationPermission()
+
     fetchMyTables()
+    checkReadyDrinks()
 
     // Atualizar a cada 30 segundos
-    const interval = setInterval(fetchMyTables, 30000)
-    return () => clearInterval(interval)
+    const tablesInterval = setInterval(fetchMyTables, 30000)
+    // Verificar pedidos prontos a cada 5 segundos
+    const drinksInterval = setInterval(checkReadyDrinks, 5000)
+
+    return () => {
+      clearInterval(tablesInterval)
+      clearInterval(drinksInterval)
+    }
   }, [isAuthenticated, router])
+
+  const requestNotificationPermission = async () => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      await Notification.requestPermission()
+    }
+  }
+
+  const checkReadyDrinks = async () => {
+    try {
+      const response = await fetch('/api/waiter/ready-drinks', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const readyOrders = data.data || []
+
+        // Criar set com IDs dos pedidos prontos atuais
+        const currentReadyIds = new Set<string>(readyOrders.map((order: any) => order.id))
+
+        // Detectar novos pedidos prontos
+        const newReadyOrders = readyOrders.filter((order: any) =>
+          !previousReadyDrinksRef.current.has(order.id)
+        )
+
+        if (newReadyOrders.length > 0) {
+          // Notificar sobre cada pedido pronto
+          newReadyOrders.forEach((order: any) => {
+            showDrinkReadyNotification(order)
+            playNotificationSound()
+          })
+        }
+
+        previousReadyDrinksRef.current = currentReadyIds
+      }
+    } catch (error) {
+      console.error('Erro ao verificar drinks prontos:', error)
+    }
+  }
+
+  const showDrinkReadyNotification = (order: any) => {
+    const itemsText = order.items.map((item: any) =>
+      `${item.quantity}x ${item.product.name}`
+    ).join(', ')
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const notification = new Notification('🍹 Bebida Pronta!', {
+        body: `Mesa ${order.table.number}\n${itemsText}`,
+        icon: '/icon.png',
+        badge: '/badge.png',
+        requireInteraction: true,
+        tag: `drink-${order.id}`
+      })
+
+      setTimeout(() => {
+        notification.close()
+      }, 3000)
+    }
+  }
+
+  const playNotificationSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
+
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.destination)
+
+      oscillator.frequency.value = 800
+      oscillator.type = 'sine'
+
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 3)
+
+      oscillator.start(audioContext.currentTime)
+      oscillator.stop(audioContext.currentTime + 3)
+    } catch (error) {
+      console.error('Erro ao tocar notificação:', error)
+    }
+  }
 
   const fetchMyTables = async () => {
     try {

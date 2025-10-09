@@ -12,6 +12,7 @@ datasource db {
 enum UserRole {
   RECEPTIONIST  // Recepcionista (acesso completo)
   WAITER        // Garçom (acesso limitado)
+  DRINKS        // Operador de Drinks (acesso à drinks station)
 }
 
 // Estados da mesa

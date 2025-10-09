@@ -27,6 +27,12 @@ export default function DashboardPage() {
       return
     }
 
+    // Redirecionar usuários DRINKS direto para a drinks station
+    if (user && user.role === 'DRINKS') {
+      router.push('/drinks')
+      return
+    }
+
     // Buscar stats reais da API
     const fetchStats = async () => {
       try {

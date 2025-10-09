@@ -1,6 +1,6 @@
 // Tipos TypeScript para o Sistema Burguesa
 
-export type UserRole = 'RECEPTIONIST' | 'WAITER'
+export type UserRole = 'RECEPTIONIST' | 'WAITER' | 'DRINKS'
 export type TableStatus = 'EMPTY' | 'ATTENDING' | 'FINISHED'
 export type ProductCategory = 'PETISCOS' | 'BEBIDAS_SEM_ALCOOL' | 'BEBIDAS_COM_ALCOOL' | 'DRINKS_ESPECIAIS' | 'SUCOS' | 'OUTROS'
 export type OrderStatus = 'PENDING' | 'PREPARING' | 'READY' | 'DELIVERED' | 'CANCELLED'
