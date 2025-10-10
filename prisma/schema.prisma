@@ -182,6 +182,7 @@ model PrinterConfig {
   type          String   // 'kitchen' ou 'reception'
   vendorId      String
   productId     String
+  devicePath    String?  // Caminho do dispositivo USB (ex: /dev/usb/lp0, /dev/usb/lp1)
   connected     Boolean  @default(false)
   lastUsed      DateTime?
   printCount    Int      @default(0)

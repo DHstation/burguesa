@@ -23,6 +23,16 @@ const typeLabels: Record<string, string> = {
   reception: 'Recepção',
 }
 
+const typeDescriptions: Record<string, string> = {
+  kitchen: 'Imprime automaticamente pedidos de Petiscos e Sucos',
+  reception: 'Imprime o resumo/total da mesa manualmente',
+}
+
+const typeIcons: Record<string, string> = {
+  kitchen: '🍳',
+  reception: '📄',
+}
+
 export default function PrintersPage() {
   const router = useRouter()
   const { token, user, isAuthenticated, isHydrated } = useAuthStore()
@@ -290,6 +300,31 @@ export default function PrintersPage() {
           </div>
         </div>
 
+        {/* Informações sobre o sistema de impressão */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+          <h2 className="text-lg font-semibold text-blue-900 mb-3">Como funciona o sistema de impressão</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex gap-3">
+              <div className="text-3xl">🍳</div>
+              <div>
+                <h3 className="font-semibold text-blue-900">Impressora Cozinha</h3>
+                <p className="text-sm text-blue-800">
+                  Imprime <strong>automaticamente</strong> quando o garçom adiciona produtos do tipo <strong>Petiscos</strong> ou <strong>Sucos</strong>
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <div className="text-3xl">📄</div>
+              <div>
+                <h3 className="font-semibold text-blue-900">Impressora Recepção</h3>
+                <p className="text-sm text-blue-800">
+                  Imprime <strong>manualmente</strong> (botão "Imprimir") o resumo/total da mesa para pagamento
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <div className="bg-white p-4 rounded-lg border shadow-sm">
@@ -335,11 +370,21 @@ export default function PrintersPage() {
                   {printers.map((printer) => (
                     <tr key={printer.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="font-medium text-gray-900">{printer.name}</span>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-900">{printer.name}</span>
+                          <span className="text-xs text-gray-500 mt-1">
+                            {typeDescriptions[printer.type]}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                          {typeLabels[printer.type]}
+                        <span className={`px-3 py-1 text-xs font-semibold rounded-full inline-flex items-center gap-1 ${
+                          printer.type === 'kitchen'
+                            ? 'bg-orange-100 text-orange-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          <span>{typeIcons[printer.type]}</span>
+                          <span>{typeLabels[printer.type]}</span>
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">

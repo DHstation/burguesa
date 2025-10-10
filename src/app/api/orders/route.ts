@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
+import { autoPrintKitchenOrder } from '@/lib/print-helpers'
 
 // GET /api/orders - Lista todos os pedidos
 export async function GET(request: NextRequest) {
@@ -203,7 +204,13 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      return NextResponse.json(order, { status: 201 })
+      // Impressão automática para a cozinha (PETISCOS e SUCOS)
+      const printResult = await autoPrintKitchenOrder(order)
+
+      return NextResponse.json({
+        ...order,
+        printStatus: printResult,
+      }, { status: 201 })
     } catch (error) {
       console.error('Erro ao criar pedido:', error)
       return NextResponse.json(

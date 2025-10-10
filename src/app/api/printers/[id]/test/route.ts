@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
+import { findDevicePath } from '@/lib/printer-utils'
 
 // POST /api/printers/[id]/test - Testa conexão real com impressora USB
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return requireAuth(async (req: NextRequest, user: any) => {
+  return requireAuth(async (_req: NextRequest, user: any) => {
     try {
       const { id } = await params
 
@@ -67,11 +68,36 @@ export async function POST(
           device.open()
           device.close()
 
+          // Lista TODOS os device paths disponíveis
+          const fs = require('fs')
+          const possiblePaths = [
+            '/dev/usb/lp0',
+            '/dev/usb/lp1',
+            '/dev/usb/lp2',
+            '/dev/usb/lp3',
+          ]
+          const availablePaths = possiblePaths.filter(path => fs.existsSync(path))
+
+          // Se já tem devicePath configurado, mantém. Senão, tenta detectar
+          let devicePath = printer.devicePath
+          if (!devicePath && availablePaths.length > 0) {
+            // Pega o devicePath baseado no tipo da impressora
+            // Heurística: primeira impressora kitchen pega lp1, reception pega lp0
+            if (printer.type === 'kitchen' && availablePaths.includes('/dev/usb/lp1')) {
+              devicePath = '/dev/usb/lp1'
+            } else if (printer.type === 'reception' && availablePaths.includes('/dev/usb/lp0')) {
+              devicePath = '/dev/usb/lp0'
+            } else {
+              devicePath = availablePaths[0]
+            }
+          }
+
           // Impressora encontrada e acessível
           await prisma.printerConfig.update({
             where: { id },
             data: {
               connected: true,
+              devicePath: devicePath,
               lastUsed: new Date(),
             },
           })
@@ -85,6 +111,7 @@ export async function POST(
               metadata: {
                 printerId: printer.id,
                 success: true,
+                devicePath: devicePath,
               },
             },
           })
@@ -92,12 +119,14 @@ export async function POST(
           return NextResponse.json({
             success: true,
             connected: true,
-            message: `Impressora "${printer.name}" conectada com sucesso!`,
+            message: `Impressora "${printer.name}" conectada com sucesso!${devicePath ? `\n\nDevice Path: ${devicePath}` : ''}\n\nDevice paths disponíveis: ${availablePaths.join(', ')}`,
             device: {
               vendorId: printer.vendorId,
               productId: printer.productId,
               name: printer.name,
+              devicePath: devicePath || 'Não detectado',
             },
+            availablePaths: availablePaths,
           })
         } catch (accessError: any) {
           // Dispositivo encontrado mas sem permissão de acesso
